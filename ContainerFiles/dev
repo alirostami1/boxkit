@@ -1,0 +1,15 @@
+FROM quay.io/fedora/fedora-toolbox:latest
+
+LABEL com.github.containers.toolbox="true" \
+      usage="This image is meant to be used with the toolbox or distrobox command" \
+      summary="An image used for my development" \
+      maintainer="contact@alirostami.net"
+
+# Copy the setup scripts and package list
+COPY ../scripts/distrobox-shims.sh /
+COPY ../scripts/dev.sh /
+COPY ../packages/dev.packages /
+
+# Run the setup scripts
+RUN chmod +x dev.sh distrobox-shims.sh && /dev.sh
+RUN rm /dev.sh /distrobox-shims.sh /dev.packages

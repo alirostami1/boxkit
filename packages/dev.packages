@@ -1,0 +1,21 @@
+# editor related
+neovim
+ripgrep
+fzf
+vimdiff
+# compilers/runtimes
+gcc
+g++
+clang
+nodejs
+golang
+python3
+# build systems
+just
+cmake
+make
+# others
+age
+gh
+wl-clipboard
+zstd

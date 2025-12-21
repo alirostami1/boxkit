@@ -1,7 +1,5 @@
 # editor related
 neovim
-ripgrep
-fzf
 vimdiff
 # compilers/runtimes
 gcc
@@ -16,7 +14,11 @@ cmake
 make
 # others
 zsh
+fd-find
 tmux
+ripgrep
+fzf
+tree-sitter-cli
 age
 gh
 wl-clipboard

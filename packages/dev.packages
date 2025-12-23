@@ -13,6 +13,7 @@ just
 cmake
 make
 # others
+dbus-x11
 zsh
 fd-find
 tmux

@@ -1,0 +1,24 @@
+[user]
+	email = ali.rostami@live.com
+	name = Ali Rostami
+	signingkey = /home/aros/.ssh/id_ed25519.pub
+[credential]
+	helper = store
+[push]
+	autoSetupRemote = true
+	default = current
+[rerere]
+	enabled = true
+[commit]
+	gpgsign = true
+[gpg]
+	program = gpg
+	format = ssh
+[pull]
+	rebase = true
+[tag]
+	gpgSign = true
+[gpg "ssh"]
+	allowedSignersFile = /home/aros/.config/git/allowed_signers
+[init]
+	defaultBranch = main

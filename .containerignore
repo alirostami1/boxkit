@@ -1,0 +1,9 @@
+.git
+.github
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+Justfile
+LICENSE
+README.md
+cosign.pub
+renovate.json

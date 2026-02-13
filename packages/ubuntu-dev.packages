@@ -1,0 +1,32 @@
+# editor related
+neovim
+vim
+# compilers/runtimes
+gcc
+g++
+clang
+clang-tools
+nodejs
+npm
+golang-go
+cargo
+python3
+lua5.4
+# build systems
+just
+cmake
+make
+# others
+curl
+git
+fd-find
+tmux
+ripgrep
+fzf
+gh
+wl-clipboard
+unzip
+shfmt
+yamllint
+luarocks
+htop

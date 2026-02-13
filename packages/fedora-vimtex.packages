@@ -1,0 +1,23 @@
+# editor
+neovim
+git
+ripgrep
+fd-find
+tmux
+nodejs
+gcc
+make
+fzf
+wl-clipboard
+# latex toolchain (core paper-writing set)
+texlive-scheme-basic
+texlive-collection-latex
+texlive-collection-latexextra
+texlive-collection-fontsrecommended
+texlive-collection-bibtexextra
+texlive-collection-langenglish
+# pdf viewer
+zathura
+zathura-pdf-mupdf
+# dbus session support for zathura sync
+dbus-x11

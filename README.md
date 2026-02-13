@@ -55,6 +55,29 @@ jobs:
   e.g. If you want to create a custom image named *appbox-debian*, the corresponding ContainerFile must be named `appbox-debian` and must be stored inside the `ContainerFiles/` folder.
 - The URL for the generated images will be `ghcr.io/<username>/<image_name>` by default.
 
+### Base and derivative images
+
+This repo ships two base images:
+- `ContainerFiles/fedora-dev`
+- `ContainerFiles/ubuntu-dev`
+
+Derivatives should `FROM` the base image and only add specialization. Example:
+
+```Dockerfile
+ARG BASE_IMAGE=ghcr.io/REPLACE_ME/fedora-dev:latest
+FROM ${BASE_IMAGE}
+
+RUN sudo dnf install -y ansible \
+    && sudo dnf clean all \
+    && sudo rm -rf /var/cache/dnf /var/lib/dnf
+```
+
+You can see working examples in:
+- `ContainerFiles/fedora-dev-ansible`
+- `ContainerFiles/ubuntu-dev-ansible`
+
+To build derivatives, add them to the `push-ghcr-derivatives` matrix in `build-boxkit.yml` and set the matching `base_image` entry.
+
 ### Signing your images
 Although optional, it is **Highly recommended** you use container signing for your images.
 To sign your images, follow the steps below:

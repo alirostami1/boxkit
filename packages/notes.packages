@@ -1,0 +1,10 @@
+# editor related
+neovim
+vimdiff
+fd-find
+tmux
+ripgrep
+fzf
+tree-sitter-cli
+wl-clipboard
+luarocks

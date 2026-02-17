@@ -1,6 +1,0 @@
-ARG BASE_IMAGE=localhost/fedora-dev:latest
-FROM ${BASE_IMAGE}
-
-LABEL com.github.containers.toolbox="true"       usage="This image is meant to be used with the toolbox or distrobox command"       summary="Derivative image: sf-mumps"       maintainer="contact@alirostami.net"
-
-# Add customization below.

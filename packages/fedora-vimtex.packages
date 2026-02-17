@@ -9,6 +9,8 @@ gcc
 make
 fzf
 wl-clipboard
+tree-sitter-cli
+htop
 # latex toolchain (core paper-writing set)
 texlive-scheme-basic
 texlive-collection-latex
@@ -16,6 +18,7 @@ texlive-collection-latexextra
 texlive-collection-fontsrecommended
 texlive-collection-bibtexextra
 texlive-collection-langenglish
+latexmk
 # pdf viewer
 zathura
 zathura-pdf-mupdf

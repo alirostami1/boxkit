@@ -23,7 +23,7 @@ bases:
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
       tag_args=(-t {{registry}}/fedora-dev:{{tag}} -t {{registry}}/fedora-dev:${build_date}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/fedora-dev:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
+      label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
       {{container_tool}} build $pull_flag $no_cache_flag $layers_flag \
         "${label_args[@]}" \
@@ -44,7 +44,7 @@ bases:
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
       tag_args=(-t {{registry}}/fedora-vimtex:{{tag}} -t {{registry}}/fedora-vimtex:${build_date}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/fedora-vimtex:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
+      label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
       {{container_tool}} build $pull_flag $no_cache_flag $layers_flag \
         "${label_args[@]}" \
@@ -65,7 +65,7 @@ bases:
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
       tag_args=(-t {{registry}}/ubuntu-dev:{{tag}} -t {{registry}}/ubuntu-dev:${build_date}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/ubuntu-dev:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
+      label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
       {{container_tool}} build $pull_flag $no_cache_flag $layers_flag \
         "${label_args[@]}" \
@@ -87,9 +87,9 @@ derivatives:
       build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
       source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/fedora-dev-ansible:{{tag}} -t {{registry}}/fedora-dev-ansible:${build_date}); \
+      tag_args=(-t {{registry}}/notes:{{tag}} -t {{registry}}/notes:${build_date}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/fedora-dev-ansible:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
+      label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
       {{container_tool}} build $pull_flag $no_cache_flag $layers_flag \
         "${label_args[@]}" \
@@ -97,29 +97,7 @@ derivatives:
         --build-arg USER_UID="${user_uid}" \
         --build-arg USER_GID="${user_gid}" \
         --build-arg BASE_IMAGE={{registry}}/fedora-dev:{{tag}} \
-        -f ContainerFiles/fedora-dev-ansible \
-        "${tag_args[@]}" \
-        .
-    pull_flag=""; no_cache_flag=""; layers_flag=""; \
-      if [[ "{{pull}}" == "1" ]]; then pull_flag="--pull=always"; fi; \
-      if [[ "{{no_cache}}" == "1" ]]; then no_cache_flag="--no-cache"; fi; \
-      if [[ "{{layers}}" == "1" ]]; then layers_flag="--layers"; fi; \
-      git_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"; \
-      build_date="$(date -u +%Y%m%d)"; \
-      build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
-      source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
-      user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/ubuntu-dev-ansible:{{tag}} -t {{registry}}/ubuntu-dev-ansible:${build_date}); \
-      label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/ubuntu-dev-ansible:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
-      if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
-      {{container_tool}} build $pull_flag $no_cache_flag $layers_flag \
-        "${label_args[@]}" \
-        --build-arg USERNAME="${user_name}" \
-        --build-arg USER_UID="${user_uid}" \
-        --build-arg USER_GID="${user_gid}" \
-        --build-arg BASE_IMAGE={{registry}}/ubuntu-dev:{{tag}} \
-        -f ContainerFiles/ubuntu-dev-ansible \
+        -f ContainerFiles/notes \
         "${tag_args[@]}" \
         .
 
@@ -139,7 +117,7 @@ build image base="":
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
       tag_args=(-t {{registry}}/{{image}}:{{tag}} -t {{registry}}/{{image}}:${build_date}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
-      if [[ -n "${git_sha}" ]]; then tag_args+=(-t {{registry}}/{{image}}:${git_sha}); label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); fi; \
+      label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
       base_args=(); \
       if [[ -n "{{base}}" ]]; then base_args=(--build-arg BASE_IMAGE={{base}}); fi; \

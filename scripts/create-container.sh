@@ -3,22 +3,22 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: ${0} [options] [name] [image]
+Usage: create-container.sh [options] [name] [image]
 
 Options:
   -n, --name NAME         Container name (default: dev)
   -i, --image [IMAGE]     Pick from local images (optional preselect)
       --keepalive         Keep the container running after exit (tmux if available, otherwise sleep)
-      --no-docs           Skip all Documents mounts
-      --no-docs-projects  Skip ~/Documents/projects
-      --no-docs-work      Skip ~/Documents/work
-      --no-docs-education Skip ~/Documents/education
+      --docs-projects     Include ~/Documents/projects
+      --docs-work         Include ~/Documents/work
+      --docs-education    Include ~/Documents/education
+      --docs-notes        Include ~/Documents/notes
+      --docs-scripts      Include ~/Documents/scripts
+      --downloads         Include ~/Downloads
+      --ssh               Include ssh-agent forwarding and ~/.ssh public key
       --wayland           Forward Wayland socket (default: off)
-      --no-wayland        Do not forward Wayland socket
       --x11               Forward X11 socket (default: off)
-      --no-x11            Do not forward X11 socket
       --dev-home          Include .dev-home mounts
-      --no-dev-home       Skip .dev-home mounts (default)
   -h, --help              Show this help
 
 If --image is omitted, the default image is used.
@@ -30,9 +30,13 @@ NAME=""
 IMAGE=""
 IMAGE_INPUT=""
 IMAGE_REQUESTED=0
-INCLUDE_DOCS_PROJECTS=1
-INCLUDE_DOCS_WORK=1
-INCLUDE_DOCS_EDUCATION=1
+INCLUDE_DOCS_PROJECTS=0
+INCLUDE_DOCS_WORK=0
+INCLUDE_DOCS_EDUCATION=0
+INCLUDE_DOCS_NOTES=0
+INCLUDE_DOCS_SCRIPTS=0
+INCLUDE_DOWNLOADS=0
+INCLUDE_SSH=0
 INCLUDE_DEV_HOME=0
 INCLUDE_WAYLAND=0
 INCLUDE_X11=0
@@ -78,22 +82,32 @@ while [[ $# -gt 0 ]]; do
     KEEPALIVE=1
     shift 1
     ;;
-  --no-docs)
-    INCLUDE_DOCS_PROJECTS=0
-    INCLUDE_DOCS_WORK=0
-    INCLUDE_DOCS_EDUCATION=0
+  --docs-projects)
+    INCLUDE_DOCS_PROJECTS=1
     shift 1
     ;;
-  --no-docs-projects)
-    INCLUDE_DOCS_PROJECTS=0
+  --docs-work)
+    INCLUDE_DOCS_WORK=1
     shift 1
     ;;
-  --no-docs-work)
-    INCLUDE_DOCS_WORK=0
+  --docs-education)
+    INCLUDE_DOCS_EDUCATION=1
     shift 1
     ;;
-  --no-docs-education)
-    INCLUDE_DOCS_EDUCATION=0
+  --docs-notes)
+    INCLUDE_DOCS_NOTES=1
+    shift 1
+    ;;
+  --docs-scripts)
+    INCLUDE_DOCS_SCRIPTS=1
+    shift 1
+    ;;
+  --downloads)
+    INCLUDE_DOWNLOADS=1
+    shift 1
+    ;;
+  --ssh)
+    INCLUDE_SSH=1
     shift 1
     ;;
   --dev-home)
@@ -104,20 +118,8 @@ while [[ $# -gt 0 ]]; do
     INCLUDE_WAYLAND=1
     shift 1
     ;;
-  --no-wayland)
-    INCLUDE_WAYLAND=0
-    shift 1
-    ;;
   --x11)
     INCLUDE_X11=1
-    shift 1
-    ;;
-  --no-x11)
-    INCLUDE_X11=0
-    shift 1
-    ;;
-  --no-dev-home)
-    INCLUDE_DEV_HOME=0
     shift 1
     ;;
   --)
@@ -152,7 +154,7 @@ HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
 DEFAULT_NAME="dev"
-DEFAULT_IMAGE="localhost/dev:latest"
+DEFAULT_IMAGE="localhost/fedora-dev:latest"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/container-creator"
 CONFIG_FILE="${CONFIG_DIR}/config.yml"
 
@@ -327,6 +329,22 @@ DOC_EDUCATION_MOUNTS=(
   "$HOME/Documents/education:${HOME_DIR}/education:Z"
 )
 
+DOC_NOTES_MOUNTS=(
+  "$HOME/Documents/notes:${HOME_DIR}/notes:Z"
+)
+
+DOC_SCRIPTS_MOUNTS=(
+  "$HOME/Documents/scripts:${HOME_DIR}/scripts:ro,Z"
+)
+
+DOWNLOADS_MOUNTS=(
+  "$HOME/Downloads:${HOME_DIR}/Downloads:ro,Z"
+)
+
+SSH_MOUNTS=(
+  "$HOME/.ssh/id_ed25519.pub:${HOME_DIR}/.ssh/id_ed25519.pub:ro,Z"
+)
+
 DEV_HOME_MOUNTS=(
   "$HOME/.dev-home/.config:${HOME_DIR}/.config/github-copilot:Z"
   "$HOME/.dev-home/.config:${HOME_DIR}/.config/gh:Z"
@@ -335,9 +353,6 @@ DEV_HOME_MOUNTS=(
 )
 
 BASE_MOUNTS=(
-  "$HOME/Documents/scripts:${HOME_DIR}/scripts:ro,Z"
-  "$HOME/Downloads:${HOME_DIR}/Downloads:ro,Z"
-  "$HOME/.ssh/id_ed25519.pub:${HOME_DIR}/.ssh/id_ed25519.pub:ro,Z"
 )
 
 MOUNTS=("${BASE_MOUNTS[@]}")
@@ -349,6 +364,18 @@ if [[ "$INCLUDE_DOCS_WORK" == "1" ]]; then
 fi
 if [[ "$INCLUDE_DOCS_EDUCATION" == "1" ]]; then
   MOUNTS+=("${DOC_EDUCATION_MOUNTS[@]}")
+fi
+if [[ "$INCLUDE_DOCS_NOTES" == "1" ]]; then
+  MOUNTS+=("${DOC_NOTES_MOUNTS[@]}")
+fi
+if [[ "$INCLUDE_DOCS_SCRIPTS" == "1" ]]; then
+  MOUNTS+=("${DOC_SCRIPTS_MOUNTS[@]}")
+fi
+if [[ "$INCLUDE_DOWNLOADS" == "1" ]]; then
+  MOUNTS+=("${DOWNLOADS_MOUNTS[@]}")
+fi
+if [[ "$INCLUDE_SSH" == "1" ]]; then
+  MOUNTS+=("${SSH_MOUNTS[@]}")
 fi
 if [[ "$INCLUDE_DEV_HOME" == "1" ]]; then
   MOUNTS+=("${DEV_HOME_MOUNTS[@]}")
@@ -385,9 +412,11 @@ add_mounts "${MOUNTS[@]}"
 need_label_disable=0
 EXTRA_ARGS=()
 
-if [[ -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
+if [[ "$INCLUDE_SSH" == "1" && -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
   need_label_disable=1
   EXTRA_ARGS+=(-v "${SSH_AUTH_SOCK}:/tmp/ssh-agent" -e "SSH_AUTH_SOCK=/tmp/ssh-agent")
+elif [[ "$INCLUDE_SSH" == "1" ]]; then
+  echo "SSH forwarding requested but SSH_AUTH_SOCK is missing." >&2
 fi
 
 if [[ "$INCLUDE_WAYLAND" == "1" ]]; then

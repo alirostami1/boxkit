@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+fdcommand=fd
+if ! type "fd" >/dev/null; then
+    if ! type "fdfind" >/dev/null; then
+        echo "fd command not found. Please install fd (fd-find on Debian/Ubuntu)." >&2
+        exit 1
+    fi
+    fdcommand=fdfind
+fi
+
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    selected=$(
+        {
+            $fdcommand . ~/work/* ~/projects -d 1 --type d
+            printf '%s\n' "$HOME/.local/share/chezmoi" "$HOME/scripts" \
+                "$HOME/.config/nvim" "$HOME/.config/zsh" "$HOME/.config/tmux"
+        } | fzf
+    )
+fi
+
+if [[ -z $selected ]]; then
+    exit 0
+fi
+
+selected_name=$(basename "$selected" | tr . _)
+tmux_running=$(pgrep tmux)
+
+# if not inside a tmux session, and if no session is started, start a new one
+if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+    tmux new-session -d -s ${selected_name} -c $selected
+    tmux rename-window -t ${selected_name}:0 edit
+    tmux new-window -t ${selected_name} -n term -c $selected
+    sleep .01s
+    tmux send-keys -t ${selected_name}:edit 'nvim .' C-m
+    tmux attach -t ${selected_name}:edit
+    exit 0
+fi
+
+# if session does not exist, create it
+if ! tmux has-session -t=${selected_name} 2>/dev/null; then
+    tmux new-session -d -s ${selected_name} -c $selected
+    tmux rename-window -t ${selected_name}:0 edit
+    tmux new-window -t ${selected_name} -n term -c $selected
+    sleep .01s
+    tmux send-keys -t ${selected_name}:edit 'nvim .' C-m
+    # switch client
+    if [[ -z $TMUX ]]; then
+        tmux attach -t ${selected_name}:edit
+    else
+        tmux switch-client -t ${selected_name}:edit
+    fi
+fi
+
+# if exists, just switch to it
+if [[ -z $TMUX ]]; then
+    tmux attach -t ${selected_name}
+else
+    tmux switch-client -t ${selected_name}
+fi

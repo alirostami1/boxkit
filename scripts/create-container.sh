@@ -8,12 +8,12 @@ Usage: create-container.sh [options] [name] [image]
 Options:
   -n, --name NAME         Container name (default: dev)
   -i, --image [IMAGE]     Pick from local images (optional preselect)
+  -p, --profile NAME      Use a config profile (optional)
       --keepalive         Keep the container running after exit (tmux if available, otherwise sleep)
       --docs-projects     Include ~/Documents/projects
       --docs-work         Include ~/Documents/work
       --docs-education    Include ~/Documents/education
       --docs-notes        Include ~/Documents/notes
-      --docs-scripts      Include ~/Documents/scripts
       --downloads         Include ~/Downloads
       --ssh               Include ssh-agent forwarding and ~/.ssh public key
       --wayland           Forward Wayland socket (default: off)
@@ -23,24 +23,42 @@ Options:
 
 If --image is omitted, the default image is used.
 By default, containers stop when you exit. Use --keepalive to keep them running.
+If you run this command with no arguments, you'll be prompted to pick a profile.
 USAGE
 }
 
+PROMPT_PROFILE=0
+if [[ $# -eq 0 ]]; then
+  PROMPT_PROFILE=1
+fi
+
 NAME=""
+NAME_SET=0
 IMAGE=""
 IMAGE_INPUT=""
 IMAGE_REQUESTED=0
+PROFILE=""
+PROFILE_SET=0
 INCLUDE_DOCS_PROJECTS=0
+DOCS_PROJECTS_SET=0
 INCLUDE_DOCS_WORK=0
+DOCS_WORK_SET=0
 INCLUDE_DOCS_EDUCATION=0
+DOCS_EDUCATION_SET=0
 INCLUDE_DOCS_NOTES=0
-INCLUDE_DOCS_SCRIPTS=0
+DOCS_NOTES_SET=0
 INCLUDE_DOWNLOADS=0
+DOWNLOADS_SET=0
 INCLUDE_SSH=0
+SSH_SET=0
 INCLUDE_DEV_HOME=0
+DEV_HOME_SET=0
 INCLUDE_WAYLAND=0
+WAYLAND_SET=0
 INCLUDE_X11=0
+X11_SET=0
 KEEPALIVE=0
+KEEPALIVE_SET=0
 DETACH_KEYS="ctrl-q,ctrl-q"
 TMUX_SESSION="dev"
 TMUX_KEEPALIVE_SCRIPT="trap 'exit 0' TERM INT HUP QUIT; if command -v tmux >/dev/null 2>&1; then tmux new -d -s ${TMUX_SESSION} >/dev/null 2>&1 || true; fi; while :; do sleep 3600 & wait \$!; done"
@@ -58,6 +76,7 @@ while [[ $# -gt 0 ]]; do
       exit 1
     fi
     NAME="$2"
+    NAME_SET=1
     shift 2
     ;;
   -i | --image)
@@ -71,6 +90,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   --name=*)
     NAME="${1#*=}"
+    NAME_SET=1
     shift 1
     ;;
   --image=*)
@@ -78,48 +98,68 @@ while [[ $# -gt 0 ]]; do
     IMAGE_INPUT="${1#*=}"
     shift 1
     ;;
+  -p | --profile)
+    if [[ $# -lt 2 ]]; then
+      echo "Missing value for --profile" >&2
+      exit 1
+    fi
+    PROFILE="$2"
+    PROFILE_SET=1
+    shift 2
+    ;;
+  --profile=*)
+    PROFILE="${1#*=}"
+    PROFILE_SET=1
+    shift 1
+    ;;
   --keepalive)
     KEEPALIVE=1
+    KEEPALIVE_SET=1
     shift 1
     ;;
   --docs-projects)
     INCLUDE_DOCS_PROJECTS=1
+    DOCS_PROJECTS_SET=1
     shift 1
     ;;
   --docs-work)
     INCLUDE_DOCS_WORK=1
+    DOCS_WORK_SET=1
     shift 1
     ;;
   --docs-education)
     INCLUDE_DOCS_EDUCATION=1
+    DOCS_EDUCATION_SET=1
     shift 1
     ;;
   --docs-notes)
     INCLUDE_DOCS_NOTES=1
-    shift 1
-    ;;
-  --docs-scripts)
-    INCLUDE_DOCS_SCRIPTS=1
+    DOCS_NOTES_SET=1
     shift 1
     ;;
   --downloads)
     INCLUDE_DOWNLOADS=1
+    DOWNLOADS_SET=1
     shift 1
     ;;
   --ssh)
     INCLUDE_SSH=1
+    SSH_SET=1
     shift 1
     ;;
   --dev-home)
     INCLUDE_DEV_HOME=1
+    DEV_HOME_SET=1
     shift 1
     ;;
   --wayland)
     INCLUDE_WAYLAND=1
+    WAYLAND_SET=1
     shift 1
     ;;
   --x11)
     INCLUDE_X11=1
+    X11_SET=1
     shift 1
     ;;
   --)
@@ -134,6 +174,7 @@ while [[ $# -gt 0 ]]; do
   *)
     if [[ -z "$NAME" ]]; then
       NAME="$1"
+      NAME_SET=1
     elif [[ -z "$IMAGE_INPUT" ]]; then
       IMAGE_REQUESTED=1
       IMAGE_INPUT="$1"
@@ -155,12 +196,13 @@ HOST_GID="$(id -g)"
 
 DEFAULT_NAME="dev"
 DEFAULT_IMAGE="localhost/fedora-dev:latest"
+DEFAULT_PROFILE="base"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/container-creator"
 CONFIG_FILE="${CONFIG_DIR}/config.yml"
 
 read_config_value() {
   local key="$1" value
-  value="$(sed -n "s/^[[:space:]]*${key}:[[:space:]]*//p" "$CONFIG_FILE" |
+  value="$(sed -n "s/^${key}:[[:space:]]*//p" "$CONFIG_FILE" |
     sed 's/[[:space:]]*#.*$//' |
     head -n 1 |
     sed 's/[[:space:]]*$//')"
@@ -175,12 +217,28 @@ load_config() {
     cat <<EOF >"$CONFIG_FILE"
 default_name: ${DEFAULT_NAME}
 default_image: ${DEFAULT_IMAGE}
+default_profile: ${DEFAULT_PROFILE}
+profiles:
+  ${DEFAULT_PROFILE}:
+    name: ${DEFAULT_NAME}
+    image: ${DEFAULT_IMAGE}
+    docs_projects: false
+    docs_work: false
+    docs_education: false
+    docs_notes: false
+    downloads: false
+    dev_home: false
+    ssh: false
+    wayland: false
+    x11: false
+    keepalive: false
 EOF
   fi
 
-  local cfg_name cfg_image
+  local cfg_name cfg_image cfg_profile
   cfg_name="$(read_config_value "default_name" || true)"
   cfg_image="$(read_config_value "default_image" || true)"
+  cfg_profile="$(read_config_value "default_profile" || true)"
 
   if [[ -n "$cfg_name" ]]; then
     DEFAULT_NAME="$cfg_name"
@@ -188,9 +246,235 @@ EOF
   if [[ -n "$cfg_image" ]]; then
     DEFAULT_IMAGE="$cfg_image"
   fi
+  if [[ -n "$cfg_profile" ]]; then
+    DEFAULT_PROFILE="$cfg_profile"
+  fi
 }
 
 load_config
+
+normalize_bool() {
+  local value="${1,,}"
+  case "$value" in
+  1 | true | yes | on)
+    printf '1'
+    ;;
+  0 | false | no | off)
+    printf '0'
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
+list_profiles() {
+  awk '
+    BEGIN { in_profiles=0 }
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*profiles:[[:space:]]*$/ { in_profiles=1; next }
+    in_profiles && /^[[:space:]]{2}[^[:space:]].*:[[:space:]]*$/ {
+      line=$0
+      sub(/^[[:space:]]{2}/, "", line)
+      sub(/:[[:space:]]*$/, "", line)
+      print line
+      next
+    }
+    in_profiles && /^[^[:space:]]/ { in_profiles=0 }
+  ' "$CONFIG_FILE"
+}
+
+read_profile_value() {
+  local profile="$1" key="$2"
+  awk -v profile="$profile" -v key="$key" '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    BEGIN { in_profiles=0; in_profile=0 }
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*profiles:[[:space:]]*$/ { in_profiles=1; next }
+    in_profiles && /^[[:space:]]{2}[^[:space:]].*:[[:space:]]*$/ {
+      line=$0
+      sub(/^[[:space:]]{2}/, "", line)
+      sub(/:[[:space:]]*$/, "", line)
+      in_profile=(line==profile)
+      next
+    }
+    in_profiles && in_profile && /^[[:space:]]{4}[^[:space:]].*:/ {
+      line=$0
+      sub(/^[[:space:]]{4}/, "", line)
+      split(line, parts, ":")
+      k=trim(parts[1])
+      v=line
+      sub(/^[^:]*:[[:space:]]*/, "", v)
+      sub(/[[:space:]]*#.*$/, "", v)
+      v=trim(v)
+      if (k==key && length(v)>0) { print v; exit }
+    }
+    in_profiles && /^[^[:space:]]/ { in_profiles=0; in_profile=0 }
+  ' "$CONFIG_FILE"
+}
+
+resolve_profile_choice() {
+  local choice="$1"
+  shift
+  local -a profiles=("$@")
+  if [[ "$choice" =~ ^[0-9]+$ ]]; then
+    if ((choice < 1 || choice > ${#profiles[@]})); then
+      echo "Profile index out of range: $choice" >&2
+      return 1
+    fi
+    printf '%s' "${profiles[$((choice - 1))]}"
+    return 0
+  fi
+  local prof
+  for prof in "${profiles[@]}"; do
+    if [[ "$prof" == "$choice" ]]; then
+      printf '%s' "$choice"
+      return 0
+    fi
+  done
+  echo "Unknown profile: $choice" >&2
+  return 1
+}
+
+apply_profile() {
+  local profile="$1" value bool_value
+  [[ -n "$profile" ]] || return 0
+
+  if [[ "$NAME_SET" == "0" ]]; then
+    DEFAULT_NAME="$profile"
+  fi
+
+  value="$(read_profile_value "$profile" "name" || true)"
+  if [[ -n "$value" && "$NAME_SET" == "0" ]]; then
+    DEFAULT_NAME="$value"
+  fi
+
+  value="$(read_profile_value "$profile" "image" || true)"
+  if [[ -n "$value" && "$IMAGE_REQUESTED" == "0" ]]; then
+    DEFAULT_IMAGE="$value"
+  fi
+
+  value="$(read_profile_value "$profile" "docs_projects" || true)"
+  if [[ "$DOCS_PROJECTS_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DOCS_PROJECTS="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "docs_work" || true)"
+  if [[ "$DOCS_WORK_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DOCS_WORK="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "docs_education" || true)"
+  if [[ "$DOCS_EDUCATION_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DOCS_EDUCATION="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "docs_notes" || true)"
+  if [[ "$DOCS_NOTES_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DOCS_NOTES="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "downloads" || true)"
+  if [[ "$DOWNLOADS_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DOWNLOADS="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "dev_home" || true)"
+  if [[ "$DEV_HOME_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_DEV_HOME="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "ssh" || true)"
+  if [[ "$SSH_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_SSH="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "wayland" || true)"
+  if [[ "$WAYLAND_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_WAYLAND="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "x11" || true)"
+  if [[ "$X11_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      INCLUDE_X11="$bool_value"
+    fi
+  fi
+
+  value="$(read_profile_value "$profile" "keepalive" || true)"
+  if [[ "$KEEPALIVE_SET" == "0" && -n "$value" ]]; then
+    if bool_value="$(normalize_bool "$value")"; then
+      KEEPALIVE="$bool_value"
+    fi
+  fi
+}
+
+PROFILE_CHOICES=()
+if [[ -f "$CONFIG_FILE" ]]; then
+  mapfile -t PROFILE_CHOICES < <(list_profiles || true)
+fi
+
+if [[ "$PROFILE_SET" == "1" ]]; then
+  if [[ ${#PROFILE_CHOICES[@]} -eq 0 ]]; then
+    echo "No profiles defined in ${CONFIG_FILE}." >&2
+    exit 1
+  fi
+  if ! PROFILE="$(resolve_profile_choice "$PROFILE" "${PROFILE_CHOICES[@]}")"; then
+    exit 1
+  fi
+fi
+
+if [[ "$PROFILE_SET" == "0" && "$PROMPT_PROFILE" == "1" ]]; then
+  if [[ ${#PROFILE_CHOICES[@]} -eq 0 ]]; then
+    echo "No profiles defined in ${CONFIG_FILE}." >&2
+  else
+    echo "Available profiles:"
+    for i in "${!PROFILE_CHOICES[@]}"; do
+      printf " [%d] %s\n" "$((i + 1))" "${PROFILE_CHOICES[$i]}"
+    done
+    default_choice="1"
+    if [[ -n "$DEFAULT_PROFILE" ]]; then
+      for i in "${!PROFILE_CHOICES[@]}"; do
+        if [[ "${PROFILE_CHOICES[$i]}" == "$DEFAULT_PROFILE" ]]; then
+          default_choice="$DEFAULT_PROFILE"
+          break
+        fi
+      done
+    fi
+    if [[ -t 0 ]]; then
+      printf "Profile number or name (default %s): " "$default_choice"
+      read -r profile_choice
+      profile_choice="${profile_choice:-$default_choice}"
+    else
+      profile_choice="$default_choice"
+    fi
+    if PROFILE="$(resolve_profile_choice "$profile_choice" "${PROFILE_CHOICES[@]}")"; then
+      PROFILE_SET=1
+    else
+      exit 1
+    fi
+  fi
+fi
+
+if [[ "$PROFILE_SET" == "1" ]]; then
+  apply_profile "$PROFILE"
+fi
 
 if [[ -z "$NAME" ]]; then
   NAME="$DEFAULT_NAME"
@@ -330,11 +614,7 @@ DOC_EDUCATION_MOUNTS=(
 )
 
 DOC_NOTES_MOUNTS=(
-  "$HOME/Documents/notes:${HOME_DIR}/notes:Z"
-)
-
-DOC_SCRIPTS_MOUNTS=(
-  "$HOME/Documents/scripts:${HOME_DIR}/scripts:ro,Z"
+  "$HOME/Documents/notes:${HOME_DIR}/notes:z"
 )
 
 DOWNLOADS_MOUNTS=(
@@ -367,9 +647,6 @@ if [[ "$INCLUDE_DOCS_EDUCATION" == "1" ]]; then
 fi
 if [[ "$INCLUDE_DOCS_NOTES" == "1" ]]; then
   MOUNTS+=("${DOC_NOTES_MOUNTS[@]}")
-fi
-if [[ "$INCLUDE_DOCS_SCRIPTS" == "1" ]]; then
-  MOUNTS+=("${DOC_SCRIPTS_MOUNTS[@]}")
 fi
 if [[ "$INCLUDE_DOWNLOADS" == "1" ]]; then
   MOUNTS+=("${DOWNLOADS_MOUNTS[@]}")
@@ -446,10 +723,17 @@ fi
 
 if [[ "$INCLUDE_WAYLAND" == "1" || "$INCLUDE_X11" == "1" ]]; then
   dbus_socket=""
+  gvfsd_dir=""
   if [[ -n "${XDG_RUNTIME_DIR:-}" && -S "${XDG_RUNTIME_DIR}/bus" ]]; then
     dbus_socket="${XDG_RUNTIME_DIR}/bus"
   elif [[ -S "/run/user/${HOST_UID}/bus" ]]; then
     dbus_socket="/run/user/${HOST_UID}/bus"
+  fi
+
+  if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "${XDG_RUNTIME_DIR}/gvfsd" ]]; then
+    gvfsd_dir="${XDG_RUNTIME_DIR}/gvfsd"
+  elif [[ -d "/run/user/${HOST_UID}/gvfsd" ]]; then
+    gvfsd_dir="/run/user/${HOST_UID}/gvfsd"
   fi
 
   if [[ -n "$dbus_socket" ]]; then
@@ -460,6 +744,11 @@ if [[ "$INCLUDE_WAYLAND" == "1" || "$INCLUDE_X11" == "1" ]]; then
     )
   else
     echo "GUI forwarding requested but no D-Bus session bus found." >&2
+  fi
+
+  if [[ -n "$gvfsd_dir" ]]; then
+    need_label_disable=1
+    EXTRA_ARGS+=(-v "${gvfsd_dir}:/tmp/gvfsd")
   fi
 fi
 

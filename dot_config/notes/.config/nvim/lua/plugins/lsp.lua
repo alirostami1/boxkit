@@ -20,7 +20,14 @@ return {
         },
       },
     },
-    servers = {},
+    servers = {
+      marksman = {},
+      tinymist = {
+        settings = {
+          formatterMode = "typstyle",
+        },
+      },
+    },
   },
   config = function(_, opts)
     vim.diagnostic.config({

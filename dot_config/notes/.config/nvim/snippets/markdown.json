@@ -1,0 +1,132 @@
+{
+  "Task (unchecked)": {
+    "prefix": "todo",
+    "body": ["- [ ] ${1:task}"],
+    "description": "Markdown task unchecked"
+  },
+  "Task (done)": {
+    "prefix": "done",
+    "body": ["- [x] ${1:task}"],
+    "description": "Markdown task done"
+  },
+  "Heading H1": {
+    "prefix": "h1",
+    "body": ["# ${1:Title}", "", "${0}"],
+    "description": "H1 heading"
+  },
+  "Heading H2": {
+    "prefix": "h2",
+    "body": ["## ${1:Title}", "", "${0}"],
+    "description": "H2 heading"
+  },
+  "Code block (fenced)": {
+    "prefix": "code",
+    "body": ["```$1", "$0", "```"],
+    "description": "Fenced code block"
+  },
+  "Inline code": {
+    "prefix": "ic",
+    "body": ["`${1:code}`"],
+    "description": "Inline code"
+  },
+  "Link": {
+    "prefix": "link",
+    "body": ["[${1:text}](${2:url})"],
+    "description": "Markdown link"
+  },
+  "Image": {
+    "prefix": "img",
+    "body": ["![${1:alt}](${2:path-or-url})"],
+    "description": "Markdown image"
+  },
+  "Wiki link": {
+    "prefix": "wl",
+    "body": ["[[${1:Page}]]"],
+    "description": "Wiki-style link"
+  },
+  "Wiki link with alias": {
+    "prefix": "wla",
+    "body": ["[[${1:Page}|${2:Alias}]]"],
+    "description": "Wiki-style link with alias"
+  },
+  "Callout/Note": {
+    "prefix": "note",
+    "body": ["> [!NOTE]", "> ${1:content}", ">"],
+    "description": "Obsidian-style callout"
+  },
+  "Callout/Warning": {
+    "prefix": "warn",
+    "body": ["> [!WARNING]", "> ${1:content}", ">"],
+    "description": "Obsidian-style warning callout"
+  },
+  "Math inline": {
+    "prefix": "mi",
+    "body": ["$${1:expr}$$"],
+    "description": "Inline math"
+  },
+  "Math block": {
+    "prefix": "mb",
+    "body": ["$$", "${1:expr}", "$$"],
+    "description": "Math block"
+  },
+  "Table (2x2 header)": {
+    "prefix": "tbl",
+    "body": [
+      "| ${1:col1} | ${2:col2} |",
+      "| --- | --- |",
+      "| ${3:a} | ${4:b} |",
+      "| ${0:c} | ${5:d} |"
+    ],
+    "description": "Simple markdown table"
+  },
+  "Frontmatter (YAML)": {
+    "prefix": "fm",
+    "body": ["---", "title: ${1:Title}", "tags: [${2:tag}]", "---", "", "${0}"],
+    "description": "YAML frontmatter"
+  },
+  "Link from clipboard": {
+    "prefix": "linkc",
+    "body": ["[${1:text}]($CLIPBOARD)"],
+    "description": "Insert markdown link with URL from system clipboard"
+  },
+  "Link from clipboard (safe URL with <...>)": {
+    "prefix": "linkce",
+    "body": ["[${1:text}](<$CLIPBOARD>)"],
+    "description": "Link with angle-bracket URL (handles spaces better)"
+  },
+  "Image from clipboard": {
+    "prefix": "imgc",
+    "body": ["![${1:alt}](<$CLIPBOARD>)"],
+    "description": "Insert markdown image with URL/path from clipboard"
+  },
+  "Image from clipboard (alt = filename)": {
+    "prefix": "imgcf",
+    "body": ["![${1:alt}](<$CLIPBOARD>)"],
+    "description": "Insert image from clipboard URL/path (manual alt text)"
+  },
+  "Wiki link from clipboard (basename)": {
+    "prefix": "wlc",
+    "body": ["[[${1:Page}]]"],
+    "description": "Wiki link with manual page name"
+  },
+  "Reference link + definition (URL from clipboard)": {
+    "prefix": "reflc",
+    "body": ["[${1:text}][${2:id}]", "", "[${2:id}]: $CLIPBOARD"],
+    "description": "Create reference link and definition using clipboard URL"
+  },
+  "Clipboard URL-encode spaces": {
+    "prefix": "urlenc",
+    "body": ["$CLIPBOARD"],
+    "description": "Paste clipboard contents"
+  },
+  "Inline code from clipboard": {
+    "prefix": "icc",
+    "body": ["`$CLIPBOARD`"],
+    "description": "Inline code with clipboard contents"
+  },
+  "Blockquote from clipboard": {
+    "prefix": "qc",
+    "body": ["> $CLIPBOARD"],
+    "description": "Blockquote with clipboard contents"
+  }
+}

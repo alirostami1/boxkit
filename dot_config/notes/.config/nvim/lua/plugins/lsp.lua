@@ -9,7 +9,7 @@ return {
     { mode = { "n" }, "<leader>li", "<cmd>LspInfo<CR>" },
     { mode = "n", "]d", "<cmd>lua vim.diagnostic.goto_next()<CR>" },
     { mode = "n", "[d", "<cmd>lua vim.diagnostic.goto_prev()<CR>" },
-    { mode = "n", "<leader>d", "<cmd>lua vim.diagnostic.open_float()<CR>" },
+    { mode = "n", "<leader>ld", "<cmd>lua vim.diagnostic.open_float()<CR>" },
   },
   opts = {
     capabilities = {

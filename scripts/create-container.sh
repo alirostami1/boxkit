@@ -15,7 +15,7 @@ Options:
       --docs-education    Include ~/Documents/education
       --docs-notes        Include ~/Documents/notes
       --downloads         Include ~/Downloads
-      --ssh               Include ssh-agent forwarding and ~/.ssh public key
+      --ssh               Include ssh-agent forwarding, ~/.ssh public key, and known_hosts
       --wayland           Forward Wayland socket (default: off)
       --x11               Forward X11 socket (default: off)
       --dev-home          Include .dev-home mounts
@@ -623,6 +623,7 @@ DOWNLOADS_MOUNTS=(
 
 SSH_MOUNTS=(
   "$HOME/.ssh/id_ed25519.pub:${HOME_DIR}/.ssh/id_ed25519.pub:ro,Z"
+  "$HOME/.ssh/known_hosts:${HOME_DIR}/.ssh/known_hosts:Z"
 )
 
 DEV_HOME_MOUNTS=(
@@ -652,6 +653,8 @@ if [[ "$INCLUDE_DOWNLOADS" == "1" ]]; then
   MOUNTS+=("${DOWNLOADS_MOUNTS[@]}")
 fi
 if [[ "$INCLUDE_SSH" == "1" ]]; then
+  mkdir -p "$HOME/.ssh"
+  touch "$HOME/.ssh/known_hosts"
   MOUNTS+=("${SSH_MOUNTS[@]}")
 fi
 if [[ "$INCLUDE_DEV_HOME" == "1" ]]; then

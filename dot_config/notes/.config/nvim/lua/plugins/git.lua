@@ -7,7 +7,6 @@ return {
     },
     keys = {
       { mode = "n", "<leader>gg", ":Git<CR>" },
-      { mode = "n", "<leader>gd", ":Gdiff<CR>" },
       {
         mode = "n",
         "<leader>gc",

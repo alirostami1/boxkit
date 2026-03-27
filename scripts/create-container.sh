@@ -618,7 +618,7 @@ DOC_NOTES_MOUNTS=(
 )
 
 DOWNLOADS_MOUNTS=(
-  "$HOME/Downloads:${HOME_DIR}/Downloads:ro,Z"
+  "$HOME/Downloads:${HOME_DIR}/Downloads:Z"
 )
 
 SSH_MOUNTS=(
@@ -629,14 +629,22 @@ SSH_MOUNTS=(
 DEV_HOME_MOUNTS=(
   "$HOME/.dev-home/.config:${HOME_DIR}/.config/github-copilot:Z"
   "$HOME/.dev-home/.config:${HOME_DIR}/.config/gh:Z"
-  "$HOME/.dev-home/.gitconfig:${HOME_DIR}/.gitconfig:ro,Z"
+  "$HOME/.dev-home/.gitconfig:${HOME_DIR}/.gitconfig:Z"
   "$HOME/.dev-home/.codex:${HOME_DIR}/.codex:Z"
 )
 
 BASE_MOUNTS=(
 )
 
-MOUNTS=("${BASE_MOUNTS[@]}")
+TIME_MOUNTS=()
+if [[ -e "/etc/localtime" ]]; then
+  TIME_MOUNTS+=("/etc/localtime:/etc/localtime:ro")
+fi
+if [[ -e "/etc/timezone" ]]; then
+  TIME_MOUNTS+=("/etc/timezone:/etc/timezone:ro")
+fi
+
+MOUNTS=("${BASE_MOUNTS[@]}" "${TIME_MOUNTS[@]}")
 if [[ "$INCLUDE_DOCS_PROJECTS" == "1" ]]; then
   MOUNTS+=("${DOC_PROJECTS_MOUNTS[@]}")
 fi
@@ -691,6 +699,14 @@ add_mounts "${MOUNTS[@]}"
 # -----------------------------
 need_label_disable=0
 EXTRA_ARGS=()
+
+HOST_TZ="${TZ:-}"
+if [[ -z "$HOST_TZ" && -r "/etc/timezone" ]]; then
+  HOST_TZ="$(tr -d '[:space:]' </etc/timezone)"
+fi
+if [[ -n "$HOST_TZ" ]]; then
+  EXTRA_ARGS+=(-e "TZ=${HOST_TZ}")
+fi
 
 if [[ "$INCLUDE_SSH" == "1" && -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" ]]; then
   need_label_disable=1

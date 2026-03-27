@@ -120,8 +120,7 @@ function M:get_completions(_, callback)
     vim.schedule(function()
       self:get_completions(nil, callback)
     end)
-    return function()
-    end
+    return function() end
   end
 
   local row1, col0 = unpack(vim.api.nvim_win_get_cursor(0))
@@ -131,8 +130,7 @@ function M:get_completions(_, callback)
   local want_at = after_at_trigger(line, col0)
   if not want_at and not want_url then
     callback({ items = {}, is_incomplete_forward = false, is_incomplete_backward = false })
-    return function()
-    end
+    return function() end
   end
 
   local mode = want_url and "url" or "at"
@@ -173,8 +171,7 @@ function M:get_completions(_, callback)
     build_and_send(self._cache.files)
   end
 
-  return function()
-  end
+  return function() end
 end
 
 return M

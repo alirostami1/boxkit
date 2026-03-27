@@ -29,10 +29,21 @@ local function write_file_if_missing(path, title)
     return false
   end
 
-  local fd = assert(uv.fs_open(path, "w", 420))
+  local fd = uv.fs_open(path, "w", 420)
+  if not fd then
+    vim.notify("could not create note file: " .. path, vim.log.levels.ERROR)
+    return false
+  end
+
   local content = ("# %s\n\n"):format(title)
-  assert(uv.fs_write(fd, content, 0))
-  assert(uv.fs_close(fd))
+  local ok, write_err = uv.fs_write(fd, content, 0)
+  uv.fs_close(fd)
+
+  if not ok then
+    vim.notify("could not write note file: " .. tostring(write_err), vim.log.levels.ERROR)
+    return false
+  end
+
   return true
 end
 

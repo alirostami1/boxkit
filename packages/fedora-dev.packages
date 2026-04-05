@@ -8,7 +8,11 @@ clang
 clang-tools-extra
 nodejs
 golang
+rust
 cargo
+rust-analyzer
+clippy
+rustfmt
 python3
 lua
 # build systems

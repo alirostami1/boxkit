@@ -156,11 +156,6 @@ local plugins = {
       },
       sources = {
         default = { "lsp", "snippets", "path", "buffer" },
-        providers = {
-          snippets = {
-            score_offset = 100, -- prioritize snippets
-          },
-        },
       },
       fuzzy = { implementation = "prefer_rust_with_warning" },
     },
@@ -365,15 +360,14 @@ local plugins = {
     end,
   },
 
-  -- markdown
   {
-    "selimacerbas/markdown-preview.nvim",
-    dependencies = { "selimacerbas/live-server.nvim" },
+    "alirostami1/dpview",
     config = function()
-      require("markdown_preview").setup({
+      require("dpview").setup({
         port = 8421,
-        open_browser = false,
-        debounce_ms = 300,
+        preview_theme = "github",
+        auto_start = true,
+        auto_open_browser = false,
       })
     end,
   },

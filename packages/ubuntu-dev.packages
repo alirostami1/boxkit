@@ -9,7 +9,11 @@ clang-tools
 nodejs
 npm
 golang-go
+rustc
 cargo
+rust-analyzer
+clippy
+rustfmt
 python3
 lua5.4
 # build systems

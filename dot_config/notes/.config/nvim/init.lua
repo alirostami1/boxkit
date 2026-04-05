@@ -540,13 +540,15 @@ vim.api.nvim_create_autocmd("FileType", {
     end
     vim.b[args.buf].notes_markdown_ftplugin_loaded = true
 
-    vim.opt_local.conceallevel = 2
+    vim.opt_local.conceallevel = 0
     vim.opt_local.spelllang = "en_us"
     vim.opt_local.spell = true
 
     pcall(vim.treesitter.start, args.buf)
     vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
     vim.wo.foldmethod = "expr"
+    vim.opt_local.foldlevel = 99
+    vim.opt_local.foldlevelstart = 99
 
     notes_fzf_links.setup_buffer_keymaps(args.buf)
     notes_new_from_visual.setup_buffer_keymaps(args.buf)
@@ -564,6 +566,14 @@ vim.api.nvim_create_autocmd("FileType", {
     end, {
       buffer = args.buf,
       desc = "Toggle markdown task",
+    })
+
+    vim.keymap.set("n", "<leader>jt", function()
+      vim.cmd([[silent! lvimgrep /^\s*-\s\[\s\]\s.\+/j %]])
+      vim.cmd("lopen")
+    end, {
+      buffer = args.buf,
+      desc = "List unchecked todos in current markdown file",
     })
   end,
 })
@@ -585,6 +595,8 @@ vim.api.nvim_create_autocmd("FileType", {
     pcall(vim.treesitter.start, args.buf)
     vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
     vim.wo.foldmethod = "expr"
+    vim.opt_local.foldlevel = 99
+    vim.opt_local.foldlevelstart = 99
 
     vim.keymap.set("n", "<leader>tt", function()
       vim.api.nvim_put({ vim.fn.strftime("%H:%M") }, "c", true, true)

@@ -17,6 +17,9 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
 
 # Copy the setup scripts, package list, and dotfiles into the user's home.
 COPY --chown=${USERNAME}:${USERNAME} ../scripts/notes.sh /home/${USERNAME}/notes.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-bob.sh /home/${USERNAME}/install-bob.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-typst.sh /home/${USERNAME}/install-typst.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/lib/ /home/${USERNAME}/lib/
 COPY --chown=${USERNAME}:${USERNAME} ../packages/notes.packages /home/${USERNAME}/notes.packages
 COPY --chown=${USERNAME}:${USERNAME} ../dot_config/notes/ /home/${USERNAME}/
 
@@ -26,4 +29,7 @@ ENV NPM_CONFIG_PREFIX=/home/${USERNAME}/.npm-global
 ENV PATH=/home/${USERNAME}/.npm-global/bin:/home/${USERNAME}/.local/bin:${PATH}
 
 # Run the setup scripts
-RUN chmod +x notes.sh && ./notes.sh && rm -f notes.sh notes.packages
+RUN chmod +x notes.sh install-bob.sh install-typst.sh \
+    && ./notes.sh \
+    && rm -f notes.sh notes.packages install-bob.sh install-typst.sh \
+    && rm -rf lib

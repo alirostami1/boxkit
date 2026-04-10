@@ -1,87 +1,22 @@
 #!/bin/sh
 set -e
 
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+. "${script_dir}/lib/log.sh"
+
+log_step "Installing Fedora packages from notes.packages"
 grep -v '^#' ./notes.packages | xargs sudo dnf install -y
 
-# Node-based tools and formatters
-: "${NPM_CONFIG_PREFIX:=${HOME}/.npm-global}"
-mkdir -p "${NPM_CONFIG_PREFIX}"
-npm config set prefix "${NPM_CONFIG_PREFIX}"
-npm install -g --no-fund --no-audit \
-  @fsouza/prettierd@0.26.2 \
-  prettier@3.3.3
+# Standalone tools
+log_step "Installing standalone tools"
+sh ./install-bob.sh v4.1.6
+sh ./install-typst.sh v0.14.2
 
-install_marksman() {
-  arch="$(uname -m)"
-  case "${arch}" in
-  x86_64) asset_name="marksman-linux-x64" ;;
-  aarch64) asset_name="marksman-linux-arm64" ;;
-  *)
-    echo "Unsupported architecture for marksman: ${arch}" >&2
-    exit 1
-    ;;
-  esac
-
-  release_json="$(curl -sSL https://api.github.com/repos/artempyanykh/marksman/releases/latest)"
-  download_url="$(printf "%s" "${release_json}" | jq -r --arg name "${asset_name}" '.assets[] | select(.name == $name) | .browser_download_url')"
-
-  if [ -z "${download_url}" ] || [ "${download_url}" = "null" ]; then
-    echo "Could not find marksman asset ${asset_name} in latest release." >&2
-    exit 1
-  fi
-
-  install -d "${HOME}/.local/bin"
-  curl -sSL "${download_url}" -o /tmp/marksman
-  install -m 0755 /tmp/marksman "${HOME}/.local/bin/marksman"
-  rm -f /tmp/marksman
-}
-
-install_marksman
-
-install_typst() {
-  arch="$(uname -m)"
-  case "${arch}" in
-  x86_64) target="x86_64-unknown-linux-musl" ;;
-  aarch64) target="aarch64-unknown-linux-musl" ;;
-  *)
-    echo "Unsupported architecture for typst: ${arch}" >&2
-    exit 1
-    ;;
-  esac
-
-  release_json="$(curl -sSL https://api.github.com/repos/typst/typst/releases/latest)"
-  asset_name="$(printf "%s" "${release_json}" | jq -r --arg target "${target}" '.assets[] | select(.name | test("^typst-" + $target + "\\.tar\\.(xz|gz)$")) | .name' | head -n 1)"
-
-  if [ -z "${asset_name}" ] || [ "${asset_name}" = "null" ]; then
-    echo "Could not find a Linux typst archive for ${target} in latest release." >&2
-    exit 1
-  fi
-
-  download_url="$(printf "%s" "${release_json}" | jq -r --arg name "${asset_name}" '.assets[] | select(.name == $name) | .browser_download_url')"
-  if [ -z "${download_url}" ] || [ "${download_url}" = "null" ]; then
-    echo "Could not find download URL for typst asset ${asset_name}." >&2
-    exit 1
-  fi
-
-  install -d "${HOME}/.local/bin"
-  tmp_dir="$(mktemp -d)"
-  archive_path="${tmp_dir}/${asset_name}"
-
-  curl -sSL "${download_url}" -o "${archive_path}"
-  tar -xf "${archive_path}" -C "${tmp_dir}"
-
-  bin_path="$(find "${tmp_dir}" -type f -name typst | head -n 1)"
-  if [ -z "${bin_path}" ]; then
-    echo "typst binary not found in downloaded archive." >&2
-    rm -rf "${tmp_dir}"
-    exit 1
-  fi
-
-  install -m 0755 "${bin_path}" "${HOME}/.local/bin/typst"
-  rm -rf "${tmp_dir}"
-}
-
-install_typst
+: "${NEOVIM_VERSION:=stable}"
+log_step "Installing Neovim ${NEOVIM_VERSION} through bob"
+bob install "${NEOVIM_VERSION}"
+bob use "${NEOVIM_VERSION}"
+ln -sf "${HOME}/.local/share/bob/nvim-bin/nvim" "${HOME}/.local/bin/nvim"
 
 install_editor_plugins() {
   config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -89,6 +24,7 @@ install_editor_plugins() {
 
   mkdir -p "${tmux_plugin_dir}"
   if [ ! -d "${tmux_plugin_dir}/tpm" ]; then
+    log_info "Cloning tmux plugin manager"
     git clone https://github.com/tmux-plugins/tpm "${tmux_plugin_dir}/tpm"
   fi
 
@@ -104,10 +40,17 @@ install_editor_plugins() {
   tmux kill-session -t tpm-install || true
   tmux kill-server || true
 
-  nvim --headless "+Lazy! sync" "+qa"
+  if [ -f "${config_home}/nvim/mason-lock.json" ]; then
+    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+lua require('notes.mason_tools').restore_from_lockfile()" "+qa"
+  else
+    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+qa"
+  fi
 }
 
+log_step "Installing tmux and Neovim plugins"
 install_editor_plugins
 
+log_step "Cleaning Fedora package caches"
 sudo dnf clean all
 sudo rm -rf /var/cache/dnf /var/lib/dnf
+log_info "Notes setup complete"

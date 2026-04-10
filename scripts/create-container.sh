@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+. "${script_dir}/lib/log.sh"
+
 usage() {
   cat <<'USAGE'
 Usage: create-container.sh [options] [name] [image]
@@ -72,7 +75,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   -n | --name)
     if [[ $# -lt 2 ]]; then
-      echo "Missing value for --name" >&2
+      log_error "Missing value for --name"
       exit 1
     fi
     NAME="$2"
@@ -100,7 +103,7 @@ while [[ $# -gt 0 ]]; do
     ;;
   -p | --profile)
     if [[ $# -lt 2 ]]; then
-      echo "Missing value for --profile" >&2
+      log_error "Missing value for --profile"
       exit 1
     fi
     PROFILE="$2"
@@ -167,7 +170,7 @@ while [[ $# -gt 0 ]]; do
     break
     ;;
   -*)
-    echo "Unknown option: $1" >&2
+    log_error "Unknown option: $1"
     usage >&2
     exit 1
     ;;
@@ -179,7 +182,7 @@ while [[ $# -gt 0 ]]; do
       IMAGE_REQUESTED=1
       IMAGE_INPUT="$1"
     else
-      echo "Unexpected argument: $1" >&2
+      log_error "Unexpected argument: $1"
       usage >&2
       exit 1
     fi
@@ -319,7 +322,7 @@ resolve_profile_choice() {
   local -a profiles=("$@")
   if [[ "$choice" =~ ^[0-9]+$ ]]; then
     if ((choice < 1 || choice > ${#profiles[@]})); then
-      echo "Profile index out of range: $choice" >&2
+      log_error "Profile index out of range: $choice"
       return 1
     fi
     printf '%s' "${profiles[$((choice - 1))]}"
@@ -332,7 +335,7 @@ resolve_profile_choice() {
       return 0
     fi
   done
-  echo "Unknown profile: $choice" >&2
+  log_error "Unknown profile: $choice"
   return 1
 }
 
@@ -432,7 +435,7 @@ fi
 
 if [[ "$PROFILE_SET" == "1" ]]; then
   if [[ ${#PROFILE_CHOICES[@]} -eq 0 ]]; then
-    echo "No profiles defined in ${CONFIG_FILE}." >&2
+    log_error "No profiles defined in ${CONFIG_FILE}."
     exit 1
   fi
   if ! PROFILE="$(resolve_profile_choice "$PROFILE" "${PROFILE_CHOICES[@]}")"; then
@@ -442,9 +445,9 @@ fi
 
 if [[ "$PROFILE_SET" == "0" && "$PROMPT_PROFILE" == "1" ]]; then
   if [[ ${#PROFILE_CHOICES[@]} -eq 0 ]]; then
-    echo "No profiles defined in ${CONFIG_FILE}." >&2
+    log_error "No profiles defined in ${CONFIG_FILE}."
   else
-    echo "Available profiles:"
+    log_info "Available profiles:"
     for i in "${!PROFILE_CHOICES[@]}"; do
       printf " [%d] %s\n" "$((i + 1))" "${PROFILE_CHOICES[$i]}"
     done
@@ -529,7 +532,7 @@ resolve_image_choice() {
   local choice="$1"
   if [[ "$choice" =~ ^[0-9]+$ ]]; then
     if ((choice < 1 || choice > ${#image_values[@]})); then
-      echo "Image index out of range: $choice" >&2
+      log_error "Image index out of range: $choice"
       return 1
     fi
     printf '%s' "${image_values[$((choice - 1))]}"
@@ -543,10 +546,10 @@ if [[ "$IMAGE_REQUESTED" == "0" ]]; then
 else
   collect_images
   if [[ ${#image_values[@]} -eq 0 ]]; then
-    echo "No local images found; using ${DEFAULT_IMAGE}." >&2
+    log_warn "No local images found; using ${DEFAULT_IMAGE}."
     IMAGE="$DEFAULT_IMAGE"
   else
-    echo "Available images:"
+    log_info "Available images:"
     for i in "${!image_choices[@]}"; do
       printf " [%d] %s\n" "$((i + 1))" "${image_choices[$i]}"
     done
@@ -583,15 +586,15 @@ if podman container exists "${NAME}"; then
   if [[ "$IMAGE_REQUESTED" == "1" ]]; then
     if [[ -n "$requested_image_id" && -n "$container_image_id" ]]; then
       if [[ "$requested_image_id" != "$container_image_id" ]]; then
-        echo "Container ${NAME} already exists with a different image." >&2
-        echo "Existing image: ${container_image_name:-$container_image_id}" >&2
-        echo "Requested image: ${IMAGE}" >&2
+        log_error "Container ${NAME} already exists with a different image."
+        log_error "Existing image: ${container_image_name:-$container_image_id}"
+        log_error "Requested image: ${IMAGE}"
         exit 1
       fi
     elif [[ -n "$container_image_name" && "$IMAGE" != "$container_image_name" ]]; then
-      echo "Container ${NAME} already exists with a different image." >&2
-      echo "Existing image: ${container_image_name}" >&2
-      echo "Requested image: ${IMAGE}" >&2
+      log_error "Container ${NAME} already exists with a different image."
+      log_error "Existing image: ${container_image_name}"
+      log_error "Requested image: ${IMAGE}"
       exit 1
     fi
   fi
@@ -676,13 +679,13 @@ add_mounts() {
   for m in "$@"; do
     IFS=':' read -r host cont opts <<<"$m"
     [[ -n "${host:-}" && -n "${cont:-}" ]] || {
-      echo "Invalid mount: $m" >&2
+      log_error "Invalid mount: $m"
       exit 2
     }
 
     host="${host/#\~/$HOME}"
     [[ -e "$host" ]] || {
-      echo "Mount source missing: $host" >&2
+      log_error "Mount source missing: $host"
       exit 2
     }
 
@@ -712,7 +715,7 @@ if [[ "$INCLUDE_SSH" == "1" && -n "${SSH_AUTH_SOCK:-}" && -S "${SSH_AUTH_SOCK}" 
   need_label_disable=1
   EXTRA_ARGS+=(-v "${SSH_AUTH_SOCK}:/tmp/ssh-agent" -e "SSH_AUTH_SOCK=/tmp/ssh-agent")
 elif [[ "$INCLUDE_SSH" == "1" ]]; then
-  echo "SSH forwarding requested but SSH_AUTH_SOCK is missing." >&2
+  log_warn "SSH forwarding requested but SSH_AUTH_SOCK is missing."
 fi
 
 if [[ "$INCLUDE_WAYLAND" == "1" ]]; then
@@ -724,7 +727,7 @@ if [[ "$INCLUDE_WAYLAND" == "1" ]]; then
       -e "XDG_RUNTIME_DIR=/tmp"
     )
   else
-    echo "Wayland forwarding requested but no socket found." >&2
+    log_warn "Wayland forwarding requested but no socket found."
   fi
 fi
 
@@ -736,7 +739,7 @@ if [[ "$INCLUDE_X11" == "1" ]]; then
       -e "DISPLAY=${DISPLAY}"
     )
   else
-    echo "X11 forwarding requested but DISPLAY or /tmp/.X11-unix is missing." >&2
+    log_warn "X11 forwarding requested but DISPLAY or /tmp/.X11-unix is missing."
   fi
 fi
 
@@ -762,7 +765,7 @@ if [[ "$INCLUDE_WAYLAND" == "1" || "$INCLUDE_X11" == "1" ]]; then
       -e "DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbus-bus"
     )
   else
-    echo "GUI forwarding requested but no D-Bus session bus found." >&2
+    log_warn "GUI forwarding requested but no D-Bus session bus found."
   fi
 
   if [[ -n "$gvfsd_dir" ]]; then
@@ -777,7 +780,7 @@ fi
 
 # create/start container (keepalive runs detached; default attaches and stops on exit)
 if [[ "$container_exists" == "0" ]]; then
-  echo "Creating the container '${NAME}' with '${IMAGE}', this may take some time..."
+  log_step "Creating container '${NAME}' with image '${IMAGE}'"
   if [[ "$KEEPALIVE" == "1" ]]; then
     podman run -dit \
       --name "${NAME}" \

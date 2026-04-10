@@ -17,6 +17,9 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
 
 # Copy the setup scripts and package list into the user's home.
 COPY --chown=${USERNAME}:${USERNAME} ../scripts/fedora-dev.sh /home/${USERNAME}/fedora-dev.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-bob.sh /home/${USERNAME}/install-bob.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-marksman.sh /home/${USERNAME}/install-marksman.sh
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/lib/ /home/${USERNAME}/lib/
 COPY --chown=${USERNAME}:${USERNAME} ../packages/fedora-dev.packages /home/${USERNAME}/fedora-dev.packages
 COPY --chown=${USERNAME}:${USERNAME} ../dot_config/base-dev/ /home/${USERNAME}/
 
@@ -26,4 +29,7 @@ ENV NPM_CONFIG_PREFIX=/home/${USERNAME}/.npm-global
 ENV PATH=/home/${USERNAME}/.npm-global/bin:/home/${USERNAME}/.local/bin:${PATH}
 
 # Run the setup scripts
-RUN chmod +x fedora-dev.sh && ./fedora-dev.sh && rm -f fedora-dev.sh fedora-dev.packages
+RUN chmod +x fedora-dev.sh install-bob.sh install-marksman.sh \
+    && ./fedora-dev.sh \
+    && rm -f fedora-dev.sh fedora-dev.packages install-bob.sh install-marksman.sh \
+    && rm -rf lib

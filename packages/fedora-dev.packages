@@ -1,5 +1,4 @@
 # editor related
-neovim
 vimdiff
 # compilers/runtimes
 gcc
@@ -10,9 +9,6 @@ nodejs
 golang
 rust
 cargo
-rust-analyzer
-clippy
-rustfmt
 python3
 lua
 # build systems
@@ -21,6 +17,7 @@ cmake
 make
 # others
 curl
+jq
 git
 fd-find
 tmux
@@ -29,16 +26,9 @@ fzf
 tree-sitter-cli
 gh
 wl-clipboard
-hadolint
 unzip
-shfmt
-golang-mvdan-gofumpt
-gopls
-golangci-lint
 typescript
-delve
-ruff
-yamllint
 uv
 luarocks
 htop
+libicu

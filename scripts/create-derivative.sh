@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+. "${script_dir}/lib/log.sh"
+
 usage() {
   cat <<'USAGE'
 Usage: scripts/create-derivative.sh --base <image> --name <containerfile> [--script]
@@ -31,16 +34,14 @@ while [ $# -gt 0 ]; do
       ;;
     -b|--base)
       if [ $# -lt 2 ]; then
-        echo "Missing value for --base" >&2
-        exit 1
+        die "Missing value for --base"
       fi
       base="$2"
       shift 2
       ;;
     -n|--name)
       if [ $# -lt 2 ]; then
-        echo "Missing value for --name" >&2
-        exit 1
+        die "Missing value for --name"
       fi
       name="$2"
       shift 2
@@ -66,12 +67,12 @@ while [ $# -gt 0 ]; do
       break
       ;;
     -*)
-      echo "Unknown option: $1" >&2
+      log_error "Unknown option: $1"
       usage >&2
       exit 1
       ;;
     *)
-      echo "Unexpected argument: $1" >&2
+      log_error "Unexpected argument: $1"
       usage >&2
       exit 1
       ;;
@@ -129,55 +130,48 @@ fi
 base="$(resolve_base "$base")"
 
 if [ -z "$base" ] || [ -z "$name" ]; then
-  echo "Both base image and name are required." >&2
-  exit 1
+  die "Both base image and name are required."
 fi
 
 case "$name" in
   *" "*|*"\t"*|*"/"*)
-    echo "Name must be a single path segment without spaces or slashes." >&2
-    exit 1
+    die "Name must be a single path segment without spaces or slashes."
     ;;
   *)
     ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 repo_root=$(CDPATH= cd -- "${script_dir}/.." && pwd -P)
 containerfiles_dir="${repo_root}/ContainerFiles"
 packages_dir="${repo_root}/packages"
 scripts_dir="${repo_root}/scripts"
 
 if [ ! -d "$containerfiles_dir" ]; then
-  echo "ContainerFiles directory not found at ${containerfiles_dir}" >&2
-  exit 1
+  die "ContainerFiles directory not found at ${containerfiles_dir}"
 fi
 if [ ! -d "$packages_dir" ]; then
-  echo "packages directory not found at ${packages_dir}" >&2
-  exit 1
+  die "packages directory not found at ${packages_dir}"
 fi
 if [ ! -d "$scripts_dir" ]; then
-  echo "scripts directory not found at ${scripts_dir}" >&2
-  exit 1
+  die "scripts directory not found at ${scripts_dir}"
 fi
 
 target="${containerfiles_dir}/${name}"
 if [ -e "$target" ]; then
-  echo "${target} already exists. Pick a different name or remove it first." >&2
-  exit 1
+  die "${target} already exists. Pick a different name or remove it first."
 fi
 
 packages_target="${packages_dir}/${name}.packages"
 if [ -e "$packages_target" ]; then
-  echo "${packages_target} already exists. Pick a different name or remove it first." >&2
-  exit 1
+  die "${packages_target} already exists. Pick a different name or remove it first."
 fi
 
 script_target="${scripts_dir}/${name}.sh"
 if [ "$with_script" = "yes" ] && [ -e "$script_target" ]; then
-  echo "${script_target} already exists. Pick a different name or remove it first." >&2
-  exit 1
+  die "${script_target} already exists. Pick a different name or remove it first."
 fi
+
+log_step "Creating derivative ${name} from ${base}"
 
 if [ "$with_script" = "yes" ]; then
   cat <<EOCONTAINER > "$target"
@@ -235,9 +229,9 @@ EOF
   chmod +x "$script_target"
 fi
 
-echo "Created ${target}"
-echo "Created ${packages_target}"
+log_info "Created ${target}"
+log_info "Created ${packages_target}"
 if [ "$with_script" = "yes" ]; then
-  echo "Created ${script_target}"
+  log_info "Created ${script_target}"
 fi
-echo "Next steps: edit the new files and add ${name} to the derivatives matrix in .github/workflows/build-boxkit.yml"
+log_info "Next steps: edit the new files and add ${name} to the derivatives matrix in .github/workflows/build-boxkit.yml"

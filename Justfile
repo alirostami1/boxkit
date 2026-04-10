@@ -17,11 +17,10 @@ bases:
       if [[ "{{no_cache}}" == "1" ]]; then no_cache_flag="--no-cache"; fi; \
       if [[ "{{layers}}" == "1" ]]; then layers_flag="--layers"; fi; \
       git_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"; \
-      build_date="$(date -u +%Y%m%d)"; \
       build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
       source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/fedora-dev:{{tag}} -t {{registry}}/fedora-dev:${build_date}); \
+      tag_args=(-t {{registry}}/fedora-dev:{{tag}}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
       label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
@@ -38,11 +37,10 @@ bases:
       if [[ "{{no_cache}}" == "1" ]]; then no_cache_flag="--no-cache"; fi; \
       if [[ "{{layers}}" == "1" ]]; then layers_flag="--layers"; fi; \
       git_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"; \
-      build_date="$(date -u +%Y%m%d)"; \
       build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
       source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/ubuntu-dev:{{tag}} -t {{registry}}/ubuntu-dev:${build_date}); \
+      tag_args=(-t {{registry}}/ubuntu-dev:{{tag}}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
       label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
@@ -59,11 +57,10 @@ bases:
       if [[ "{{no_cache}}" == "1" ]]; then no_cache_flag="--no-cache"; fi; \
       if [[ "{{layers}}" == "1" ]]; then layers_flag="--layers"; fi; \
       git_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"; \
-      build_date="$(date -u +%Y%m%d)"; \
       build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
       source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/notes:{{tag}} -t {{registry}}/notes:${build_date}); \
+      tag_args=(-t {{registry}}/notes:{{tag}}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
       label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \
@@ -90,11 +87,10 @@ build image base="":
       if [[ "{{no_cache}}" == "1" ]]; then no_cache_flag="--no-cache"; fi; \
       if [[ "{{layers}}" == "1" ]]; then layers_flag="--layers"; fi; \
       git_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"; \
-      build_date="$(date -u +%Y%m%d)"; \
       build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; \
       source_url="$(git config --get remote.origin.url 2>/dev/null || true)"; \
       user_name="${USER:-aros}"; user_uid="$(id -u)"; user_gid="$(id -g)"; \
-      tag_args=(-t {{registry}}/{{image}}:{{tag}} -t {{registry}}/{{image}}:${build_date}); \
+      tag_args=(-t {{registry}}/{{image}}:{{tag}}); \
       label_args=(--label "org.opencontainers.image.created=${build_time}"); \
       label_args+=(--label "org.opencontainers.image.revision=${git_sha}"); \
       if [[ -n "${source_url}" ]]; then label_args+=(--label "org.opencontainers.image.source=${source_url}"); fi; \

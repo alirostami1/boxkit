@@ -3,10 +3,10 @@ git
 nodejs
 curl
 jq
+unzip
 libicu
 gcc
 make
-neovim
 vimdiff
 fd-find
 tmux

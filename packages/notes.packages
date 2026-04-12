@@ -7,11 +7,9 @@ unzip
 libicu
 gcc
 make
-vimdiff
 fd-find
 tmux
 ripgrep
 fzf
 tree-sitter-cli
 wl-clipboard
-luarocks

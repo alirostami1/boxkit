@@ -1,3 +1,4 @@
+---@type vim.lsp.Config
 return {
   capabilities = {
     textDocument = {
@@ -7,6 +8,7 @@ return {
       },
     },
   },
+  ---@type lspconfig.settings.yamlls
   settings = {
     redhat = { telemetry = { enabled = false } },
     yaml = {

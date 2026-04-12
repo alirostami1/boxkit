@@ -74,7 +74,6 @@ vim.keymap.set({ "n", "v" }, "<leader>y", [["+y]])
 -- Yank whole line to system clipboard
 vim.keymap.set("n", "<leader>Y", [["+Y]])
 
--- WARNING CONFLICT: <leader>d is also mapped to diagnostics float in LSP keys below.
 -- delete without overwriting clipboard
 vim.keymap.set({ "n", "v" }, "<leader>d", [["_d]])
 
@@ -176,7 +175,7 @@ vim.pack.add({
   { src = "https://github.com/lewis6991/gitsigns.nvim" },
   { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "4916d6592ede8c07973490d9322f187e07dfefac" },
   { src = "https://github.com/alirostami1/dpview" },
-}, { confirm = false })
+})
 
 vim.keymap.set("n", "<leader>u", "<cmd>Undotree<cr>", { desc = "Toggle undotree" })
 
@@ -308,6 +307,7 @@ vim.keymap.set("n", "<leader>sW", fzf_lua.grep_cWORD, { desc = "Grep WORD under 
 vim.keymap.set({ "v", "x" }, "<leader>sW", fzf_lua.grep_visual, { desc = "Visual selection or word" })
 vim.keymap.set("n", "<leader>grr", fzf_lua.lsp_references, { nowait = true, desc = "References" })
 
+require("trouble").setup()
 vim.keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Diagnostics (Trouble)" })
 vim.keymap.set("n", "]t", function()
   require("trouble").next({ skip_groups = true, jump = true })

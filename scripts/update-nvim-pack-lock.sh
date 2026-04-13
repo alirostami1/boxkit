@@ -66,7 +66,7 @@ update_profile_lock() {
   XDG_CONFIG_HOME="${tmp_root}/config" \
     XDG_DATA_HOME="${tmp_root}/data" \
     XDG_STATE_HOME="${tmp_root}/state" \
-    nvim --headless "+lua vim.pack.update(nil, { force = true })" "+qa"
+    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+qa"
 
   if [[ ! -f "${tmp_root}/config/nvim/nvim-pack-lock.json" ]]; then
     die "Neovim did not generate nvim-pack-lock.json for profile: ${profile_name}"

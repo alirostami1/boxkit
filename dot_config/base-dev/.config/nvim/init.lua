@@ -163,6 +163,7 @@ vim.pack.add({
   { src = "https://github.com/rafamadriz/friendly-snippets" },
   { src = "https://github.com/L3MON4D3/LuaSnip", version = vim.version.range("2.0.0 - 3.0.0") },
   { src = "https://github.com/saghen/blink.cmp", version = vim.version.range("1.0.0 - 2.0.0") },
+  { src = "https://github.com/folke/lazydev.nvim" },
   { src = "https://github.com/mason-org/mason.nvim" },
   { src = "https://github.com/neovim/nvim-lspconfig" },
   { src = "https://github.com/nvim-tree/nvim-web-devicons" },
@@ -226,6 +227,12 @@ require("blink.cmp").setup({
     default = { "lsp", "snippets", "path", "buffer" },
   },
   fuzzy = { implementation = "prefer_rust_with_warning" },
+})
+
+require("lazydev").setup({
+  library = {
+    { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+  },
 })
 
 vim.diagnostic.config({
@@ -299,16 +306,40 @@ fzf_lua.setup({
   },
 })
 
-vim.keymap.set("n", "<leader>/", fzf_lua.live_grep, { desc = "Grep" })
+vim.keymap.set("n", "<leader>fg", fzf_lua.live_grep, { desc = "Grep" })
 vim.keymap.set("n", "<leader>ff", fzf_lua.files, { desc = "Find Files" })
-vim.keymap.set("n", "<leader>fg", fzf_lua.git_files, { desc = "Find Git Files" })
-vim.keymap.set("n", "<leader>sw", fzf_lua.grep_cword, { desc = "Grep word under cursor" })
-vim.keymap.set("n", "<leader>sW", fzf_lua.grep_cWORD, { desc = "Grep WORD under cursor" })
-vim.keymap.set({ "v", "x" }, "<leader>sW", fzf_lua.grep_visual, { desc = "Visual selection or word" })
+vim.keymap.set("n", "<leader>fs", fzf_lua.lsp_document_symbols, { desc = "Find LSP Document Symbols" })
+vim.keymap.set("n", "<leader>fw", fzf_lua.grep_cword, { desc = "Grep word under cursor" })
+vim.keymap.set("n", "<leader>fW", fzf_lua.grep_cWORD, { desc = "Grep WORD under cursor" })
+vim.keymap.set({ "v", "x" }, "<leader>fW", fzf_lua.grep_visual, { desc = "Visual selection or word" })
 vim.keymap.set("n", "<leader>grr", fzf_lua.lsp_references, { nowait = true, desc = "References" })
 
 require("trouble").setup()
 vim.keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Diagnostics (Trouble)" })
+vim.keymap.set(
+  "n",
+  "<leader>xX",
+  "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+  { desc = "Document Diagnostics (Trouble)" }
+)
+vim.keymap.set(
+  "n",
+  "<leader>xe",
+  "<cmd>Trouble diagnostics filter.severity=vim.diagnostic.severity.ERROR<cr>",
+  { desc = "Error Diagnostics (Trouble)" }
+)
+vim.keymap.set(
+  "n",
+  "<leader>xE",
+  "<cmd>Trouble diagnostics filter.severity=vim.diagnostic.severity.ERROR filter.buf=0<cr>",
+  { desc = "Document Error Diagnostics (Trouble)" }
+)
+vim.keymap.set(
+  "n",
+  "<leader>xs",
+  "<cmd>Trouble symbols toggle pinned=true win.relative=win win.position=right<cr>",
+  { desc = "Document Symbols (Trouble)" }
+)
 vim.keymap.set("n", "]t", function()
   require("trouble").next({ skip_groups = true, jump = true })
 end, { desc = "Previous Trouble" })
@@ -366,11 +397,11 @@ vim.keymap.set("n", "<leader>fo", function()
 end, { desc = "Format buffer" })
 
 vim.keymap.set("n", "<leader>gg", ":Git<CR>")
-vim.keymap.set("n", "<leader>gB", ":Git blame<CR>", { desc = "Git blame" })
+vim.keymap.set("n", "<leader>gb", ":Git blame<CR>", { desc = "Git blame" })
 vim.keymap.set("n", "<leader>gd", ":Gvdiffsplit<CR>", { desc = "Git diff" })
-vim.keymap.set("n", "<leader>gpp", ":Git push<CR>", { desc = "Git push" })
-vim.keymap.set("n", "<leader>gpt", ":Git push --follow-tags<CR>", { desc = "Git push with tags" })
-vim.keymap.set("n", "<leader>gpu", ":Git pull<CR>", { desc = "Git pull" })
+vim.keymap.set("n", "<leader>gp", ":Git push<CR>", { desc = "Git push" })
+vim.keymap.set("n", "<leader>gt", ":Git push --follow-tags<CR>", { desc = "Git push with tags" })
+vim.keymap.set("n", "<leader>gp", ":Git pull<CR>", { desc = "Git pull" })
 
 require("nvim-treesitter").install(treesitter_grammars)
 

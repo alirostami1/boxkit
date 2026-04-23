@@ -10,7 +10,6 @@ grep -v '^#' ./notes.packages | xargs sudo dnf install -y
 # Standalone tools
 log_step "Installing standalone tools"
 sh ./install-bob.sh v4.1.6
-sh ./install-typst.sh v0.14.2
 
 : "${NEOVIM_VERSION:=stable}"
 log_step "Installing Neovim ${NEOVIM_VERSION} through bob"

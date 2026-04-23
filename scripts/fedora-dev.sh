@@ -16,10 +16,10 @@ npm config set prefix "${NPM_CONFIG_PREFIX}"
 npm install -g --no-fund --no-audit \
   @openai/codex@0.117.0
 
-# Standalone tools
+# TODO: install bob from fedora repos again once migrated to fedora 44
+# I wanted the the neovim v0.12 early :)
 log_step "Installing standalone tools"
 sh ./install-bob.sh v4.1.6
-sh ./install-marksman.sh 2026-02-08
 
 : "${NEOVIM_VERSION:=stable}"
 log_step "Installing Neovim ${NEOVIM_VERSION} through bob"

@@ -1,0 +1,6 @@
+# scientific development tools
+eigen3-devel
+boost-devel
+fftw-devel
+MUMPS-devel
+gnuplot

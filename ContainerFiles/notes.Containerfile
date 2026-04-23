@@ -1,8 +1,8 @@
 FROM quay.io/fedora/fedora-toolbox:43
 
 LABEL com.github.containers.toolbox="true" \
-      usage="This image is meant to be used for development environment" \
-      summary="Fedora dev base image" \
+      usage="This image is meant to be used for LaTeX editing" \
+      summary="Fedora VimTex image" \
       maintainer="contact@alirostami.net"
 
 # Configure a non-root user that matches the host UID/GID when provided.
@@ -15,13 +15,12 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" \
     && printf "%%wheel ALL=(ALL) NOPASSWD: ALL\n" > /etc/sudoers.d/99-wheel-nopasswd \
     && chmod 0440 /etc/sudoers.d/99-wheel-nopasswd
 
-# Copy the setup scripts and package list into the user's home.
-COPY --chown=${USERNAME}:${USERNAME} ../scripts/fedora-dev.sh /home/${USERNAME}/fedora-dev.sh
+# Copy the setup scripts, package list, and dotfiles into the user's home.
+COPY --chown=${USERNAME}:${USERNAME} ../scripts/notes.sh /home/${USERNAME}/notes.sh
 COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-bob.sh /home/${USERNAME}/install-bob.sh
-COPY --chown=${USERNAME}:${USERNAME} ../scripts/install-marksman.sh /home/${USERNAME}/install-marksman.sh
 COPY --chown=${USERNAME}:${USERNAME} ../scripts/lib/ /home/${USERNAME}/lib/
-COPY --chown=${USERNAME}:${USERNAME} ../packages/fedora-dev.packages /home/${USERNAME}/fedora-dev.packages
-COPY --chown=${USERNAME}:${USERNAME} ../dot_config/base-dev/ /home/${USERNAME}/
+COPY --chown=${USERNAME}:${USERNAME} ../packages/notes.packages /home/${USERNAME}/notes.packages
+COPY --chown=${USERNAME}:${USERNAME} ../dot_config/notes/ /home/${USERNAME}/
 
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
@@ -29,7 +28,7 @@ ENV NPM_CONFIG_PREFIX=/home/${USERNAME}/.npm-global
 ENV PATH=/home/${USERNAME}/.npm-global/bin:/home/${USERNAME}/.local/bin:${PATH}
 
 # Run the setup scripts
-RUN chmod +x fedora-dev.sh install-bob.sh install-marksman.sh \
-    && ./fedora-dev.sh \
-    && rm -f fedora-dev.sh fedora-dev.packages install-bob.sh install-marksman.sh \
+RUN chmod +x notes.sh install-bob.sh \
+    && ./notes.sh \
+    && rm -f notes.sh notes.packages install-bob.sh \
     && rm -rf lib

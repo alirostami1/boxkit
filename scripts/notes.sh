@@ -41,7 +41,7 @@ install_editor_plugins() {
   tmux kill-server || true
 
   if [ -f "${config_home}/nvim/mason-lock.json" ]; then
-    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+lua require('notes.mason_tools').restore_from_lockfile()" "+qa"
+    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+ArosMason restore" "+qa"
   else
     nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+qa"
   fi

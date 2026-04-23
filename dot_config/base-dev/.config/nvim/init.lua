@@ -1,4 +1,5 @@
 vim.g.mapleader = " "
+vim.g.maplocalleader = "\\"
 
 vim.g.have_nerd_font = true
 
@@ -29,7 +30,6 @@ vim.opt.wrap = false
 
 vim.opt.swapfile = false
 vim.opt.backup = false
-vim.opt.undodir = os.getenv("HOME") .. "/.vim/undodir"
 vim.opt.undofile = true
 
 vim.opt.hlsearch = false
@@ -50,11 +50,6 @@ vim.opt.colorcolumn = "80"
 
 vim.opt.mouse = ""
 
-local ui2_ok, ui2 = pcall(require, "vim._core.ui2")
-if ui2_ok then
-  ui2.enable({})
-end
-
 vim.cmd("colorscheme habamax")
 
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
@@ -74,9 +69,6 @@ vim.keymap.set({ "n", "v" }, "<leader>y", [["+y]])
 -- Yank whole line to system clipboard
 vim.keymap.set("n", "<leader>Y", [["+Y]])
 
--- delete without overwriting clipboard
-vim.keymap.set({ "n", "v" }, "<leader>d", [["_d]])
-
 -- do not lose visual selection when indenting
 vim.keymap.set("v", "<", "<gv")
 vim.keymap.set("v", ">", ">gv")
@@ -84,52 +76,117 @@ vim.keymap.set("v", ">", ">gv")
 -- open file explorer
 vim.keymap.set("n", "<leader>pp", "<cmd>Ex<cr>")
 
-local treesitter_grammars = {
+-- open all folds upon document open
+vim.o.foldlevel = 99
+-- fold syntax highlight see https://github.com/neovim/neovim/pull/20750
+vim.o.foldtext = ""
+vim.o.fillchars = "fold: "
+
+---@param reg string
+local function yank_line_diagnostics(reg)
+  local diags = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+  local n_diags = #diags
+  if n_diags == 0 then
+    vim.notify("No diagnostics found in current line", vim.log.levels.WARN)
+    return
+  end
+  local combined_diag = table.concat(
+    vim.tbl_map(function(diag)
+      return diag.message
+    end, diags),
+    "\n"
+  )
+  vim.fn.setreg(reg, combined_diag)
+  vim.fn.setreg(vim.v.register, combined_diag)
+  vim.notify(string.format("Yanked diagnostic message '%s'", combined_diag), vim.log.levels.INFO)
+end
+-- copy diagnostics messages
+vim.keymap.set("n", "yd", function()
+  yank_line_diagnostics('"')
+end, { desc = "Yank diagnostic messages on current line" })
+vim.keymap.set("n", "<leader>yd", function()
+  yank_line_diagnostics("+")
+end, { desc = "Yank diagnostic messages on current line" })
+
+vim.keymap.set({ "n", "x" }, "<Leader>xl", function()
+  vim.diagnostic.setloclist()
+end, { desc = "Show document diagnostics" })
+vim.keymap.set({ "n", "x" }, "<Leader>xf", function()
+  vim.diagnostic.setqflist()
+end, { desc = "Show workspace diagnostics" })
+
+vim.diagnostic.config({
+  severity_sort = true,
+  virtual_text = true,
+  update_in_insert = false,
+  underline = true,
+})
+
+-- enable ui2 if available
+local ui2_ok, ui2 = pcall(require, "vim._core.ui2")
+if ui2_ok then
+  ui2.enable({})
+end
+
+-- start session
+require("aros.session").setup()
+
+-- highlight yanked section
+local highlight_yank_augroup = vim.api.nvim_create_augroup("HighlightYank", {})
+vim.api.nvim_create_autocmd("TextYankPost", {
+  group = highlight_yank_augroup,
+  pattern = "*",
+  callback = function()
+    vim.highlight.on_yank({
+      higroup = "IncSearch",
+      timeout = 40,
+    })
+  end,
+})
+
+local lsp_servers = {
+  "bashls",
+  "gopls",
+  "lua_ls",
+  "pyright",
+  "rust_analyzer",
+  "templ",
+  "ts_ls",
+  "yamlls",
+  "jsonls",
+  "clangd",
+  "astro",
+  "tailwindcss",
+}
+
+local parsers = {
+  "vim",
+  "vimdoc",
+  "query",
   "bash",
   "c",
   "cpp",
-  "diff",
   "html",
+  "python",
+  "rust",
+  "tsx",
+  "go",
   "javascript",
+  "typescript",
   "jsdoc",
-  "json",
   "lua",
   "luadoc",
-  "luap",
+  "json",
+  "yaml",
+  "toml",
   "markdown",
   "latex",
   "markdown_inline",
-  "python",
-  "query",
-  "regex",
-  "rust",
-  "toml",
-  "tsx",
-  "typescript",
-  "vim",
-  "vimdoc",
-  "yaml",
-  "go",
-  "gomod",
-  "gosum",
-  "gowork",
   "gotmpl",
   "astro",
-  "cmake",
-  "make",
-  "matlab",
-  "nginx",
-  "rasi",
   "sql",
-  "arduino",
-  "awk",
-  "comment",
   "css",
   "dart",
-  "desktop",
-  "dockerfile",
-  "gitcommit",
-  "gitignore",
 }
 
 local function pack_hooks(ev)
@@ -147,7 +204,7 @@ local function pack_hooks(ev)
       vim.cmd.packadd("nvim-treesitter")
     end
     pcall(function()
-      require("nvim-treesitter").install(treesitter_grammars)
+      require("nvim-treesitter").install(parsers)
     end)
   end
 end
@@ -166,28 +223,41 @@ vim.pack.add({
   { src = "https://github.com/folke/lazydev.nvim" },
   { src = "https://github.com/mason-org/mason.nvim" },
   { src = "https://github.com/neovim/nvim-lspconfig" },
-  { src = "https://github.com/nvim-tree/nvim-web-devicons" },
   { src = "https://github.com/ibhagwan/fzf-lua" },
-  { src = "https://github.com/folke/trouble.nvim" },
   { src = "https://github.com/mfussenegger/nvim-lint" },
   { src = "https://github.com/stevearc/conform.nvim" },
   { src = "https://github.com/echasnovski/mini.comment" },
   { src = "https://github.com/tpope/vim-fugitive" },
   { src = "https://github.com/lewis6991/gitsigns.nvim" },
   { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "4916d6592ede8c07973490d9322f187e07dfefac" },
-  { src = "https://github.com/alirostami1/dpview" },
+  { src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects" },
+  { src = "https://github.com/carlos-algms/agentic.nvim" },
 })
 
+-- plugin: undotree
 vim.keymap.set("n", "<leader>u", "<cmd>Undotree<cr>", { desc = "Toggle undotree" })
 
-local vscode_loader = require("luasnip.loaders.from_vscode")
-vscode_loader.lazy_load()
-vscode_loader.load({
-  paths = { vim.fn.stdpath("config") .. "/snippets" },
+-- plugin: luasnip
+local snippets_augroup = vim.api.nvim_create_augroup("SnippetLoad", { clear = true })
+vim.api.nvim_create_autocmd("BufEnter", {
+  group = snippets_augroup,
+  callback = function()
+    local vscode_loader = require("luasnip.loaders.from_vscode")
+    vscode_loader.lazy_load()
+    vscode_loader.load({
+      paths = { vim.fn.stdpath("config") .. "/snippets" },
+    })
+  end,
 })
 
+-- plugin: mason
 require("mason").setup()
+require("aros.mason_tools").setup({})
 
+-- symbol navigation
+require("aros.symbols").setup()
+
+-- plugin: blink
 require("blink.cmp").setup({
   keymap = { preset = "default" },
   appearance = {},
@@ -229,134 +299,56 @@ require("blink.cmp").setup({
   fuzzy = { implementation = "prefer_rust_with_warning" },
 })
 
+-- plugin: lazydev
 require("lazydev").setup({
   library = {
     { path = "${3rd}/luv/library", words = { "vim%.uv" } },
   },
 })
 
-vim.diagnostic.config({
-  virtual_text = true,
-  update_in_insert = false,
-  underline = true,
-})
-
+-- lsp
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = vim.tbl_deep_extend("force", capabilities, require("blink.cmp").get_lsp_capabilities({}, false))
-
 vim.lsp.config("*", {
   capabilities = capabilities,
 })
 
-local lsp_servers = {
-  "bashls",
-  "gopls",
-  "lua_ls",
-  "pyright",
-  "rust_analyzer",
-  "templ",
-  "ts_ls",
-  "yamlls",
-  "jsonls",
-  "clangd",
-  "astro",
-  "tailwindcss",
-}
-
 vim.lsp.enable(lsp_servers)
 
-local mason_filetypes_by_package = {
-  ["astro-language-server"] = { "astro" },
-  ["bash-language-server"] = { "bash", "sh", "zsh" },
-  clangd = { "c", "cpp" },
-  gopls = { "go", "gomod", "gosum", "gotmpl", "gowork" },
-  ["golangci-lint"] = { "go" },
-  gofumpt = { "go" },
-  hadolint = { "dockerfile" },
-  ["eslint_d"] = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
-  ["json-lsp"] = { "json", "jsonc" },
-  ["lua-language-server"] = { "lua" },
-  ["markdownlint-cli2"] = { "markdown" },
-  prettier = { "javascript", "javascriptreact", "json", "jsonc", "markdown", "typescript", "typescriptreact" },
-  prettierd = { "javascript", "javascriptreact", "json", "jsonc", "markdown", "typescript", "typescriptreact" },
-  pyright = { "python" },
-  ruff = { "python" },
-  ["rust-analyzer"] = { "rust" },
-  selene = { "lua" },
-  shfmt = { "bash", "sh", "zsh" },
-  stylua = { "lua" },
-  ["tailwindcss-language-server"] = { "astro", "css", "html", "javascriptreact", "typescriptreact" },
-  templ = { "templ" },
-  ["typescript-language-server"] = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
-  ["yaml-language-server"] = { "yaml" },
-  yamlfmt = { "yaml" },
-  yamllint = { "yaml" },
-}
-
-require("base_dev.mason_tools").setup({
-  filetypes_by_package = mason_filetypes_by_package,
+local lsp_augroup = vim.api.nvim_create_augroup("LspAttach", {})
+vim.api.nvim_create_autocmd("LspAttach", {
+  group = lsp_augroup,
+  callback = function(e)
+    local opts = { buffer = e.buf }
+    vim.keymap.set("n", "gd", function()
+      vim.lsp.buf.definition()
+    end, opts)
+  end,
 })
 
+-- plugin fzf-lua
 local fzf_lua = require("fzf-lua")
-fzf_lua.setup({
-  keymap = {
-    fzf = {
-      ["ctrl-q"] = "select-all+accept",
-    },
-  },
-})
-
 vim.keymap.set("n", "<leader>fg", fzf_lua.live_grep, { desc = "Grep" })
 vim.keymap.set("n", "<leader>ff", fzf_lua.files, { desc = "Find Files" })
 vim.keymap.set("n", "<leader>fs", fzf_lua.lsp_document_symbols, { desc = "Find LSP Document Symbols" })
 vim.keymap.set("n", "<leader>fw", fzf_lua.grep_cword, { desc = "Grep word under cursor" })
 vim.keymap.set("n", "<leader>fW", fzf_lua.grep_cWORD, { desc = "Grep WORD under cursor" })
-vim.keymap.set({ "v", "x" }, "<leader>fW", fzf_lua.grep_visual, { desc = "Visual selection or word" })
-vim.keymap.set("n", "<leader>grr", fzf_lua.lsp_references, { nowait = true, desc = "References" })
+vim.keymap.set({ "v", "x" }, "<leader>fv", fzf_lua.grep_visual, { desc = "Visual selection or word" })
 
-require("trouble").setup()
-vim.keymap.set("n", "<leader>xx", "<cmd>Trouble diagnostics toggle<cr>", { desc = "Diagnostics (Trouble)" })
-vim.keymap.set(
-  "n",
-  "<leader>xX",
-  "<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
-  { desc = "Document Diagnostics (Trouble)" }
-)
-vim.keymap.set(
-  "n",
-  "<leader>xe",
-  "<cmd>Trouble diagnostics filter.severity=vim.diagnostic.severity.ERROR<cr>",
-  { desc = "Error Diagnostics (Trouble)" }
-)
-vim.keymap.set(
-  "n",
-  "<leader>xE",
-  "<cmd>Trouble diagnostics filter.severity=vim.diagnostic.severity.ERROR filter.buf=0<cr>",
-  { desc = "Document Error Diagnostics (Trouble)" }
-)
-vim.keymap.set(
-  "n",
-  "<leader>xs",
-  "<cmd>Trouble symbols toggle pinned=true win.relative=win win.position=right<cr>",
-  { desc = "Document Symbols (Trouble)" }
-)
-vim.keymap.set("n", "]t", function()
-  require("trouble").next({ skip_groups = true, jump = true })
-end, { desc = "Previous Trouble" })
-vim.keymap.set("n", "[t", function()
-  require("trouble").prev({ skip_groups = true, jump = true })
-end, { desc = "Next Trouble" })
-
+-- plugin nvim-lint
 local lint = require("lint")
 lint.linters_by_ft = {
   dockerfile = { "hadolint" },
   go = { "golangcilint" },
-  javascript = { "eslint_d" },
-  javascriptreact = { "eslint_d" },
+  javascript = { "biomejs" },
+  javascriptreact = { "biomejs" },
+  css = { "biomejs" },
+  graphql = { "biomejs" },
+  json = { "biomejs" },
   lua = { "selene" },
   markdown = { "markdownlint-cli2" },
-  typescript = { "eslint_d" },
-  typescriptreact = { "eslint_d" },
+  typescript = { "biomejs" },
+  typescriptreact = { "biomejs" },
   yaml = { "yamllint" },
 }
 
@@ -368,14 +360,22 @@ vim.api.nvim_create_autocmd({ "BufWritePost", "BufReadPost", "InsertLeave" }, {
   end,
 })
 
+-- plugin: conform.nvim
 local conform = require("conform")
 conform.setup({
   formatters_by_ft = {
+    ["_"] = { "trim_whitespace" },
+    c = { "clang-format" },
+    cpp = { "clang-format" },
     lua = { "stylua" },
     python = { "ruff" },
-    javascript = { "prettierd", "prettier", stop_after_first = true },
-    json = { "prettierd", "prettier", stop_after_first = true },
-    markdown = { "prettierd", "prettier", stop_after_first = true },
+    javascript = { "biome", "biome-organize-imports" },
+    typescript = { "biome", "biome-organize-imports" },
+    javascriptreact = { "biome", "biome-organize-imports" },
+    typescriptreact = { "biome", "biome-organize-imports" },
+    css = { "biome" },
+    json = { "biome" },
+    markdown = { "rumdl" },
     go = { "gofumpt", "gofmt", stop_after_first = true },
     rust = { "rustfmt" },
     sh = { "shfmt" },
@@ -391,32 +391,68 @@ conform.setup({
     },
   },
 })
+
 vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
-vim.keymap.set("n", "<leader>fo", function()
+
+vim.keymap.set("n", "<leader>gq", function()
   conform.format({ async = true })
 end, { desc = "Format buffer" })
 
+-- plugin: vim-fugitive
 vim.keymap.set("n", "<leader>gg", ":Git<CR>")
 vim.keymap.set("n", "<leader>gb", ":Git blame<CR>", { desc = "Git blame" })
 vim.keymap.set("n", "<leader>gd", ":Gvdiffsplit<CR>", { desc = "Git diff" })
 vim.keymap.set("n", "<leader>gp", ":Git push<CR>", { desc = "Git push" })
-vim.keymap.set("n", "<leader>gt", ":Git push --follow-tags<CR>", { desc = "Git push with tags" })
-vim.keymap.set("n", "<leader>gp", ":Git pull<CR>", { desc = "Git pull" })
 
-require("nvim-treesitter").install(treesitter_grammars)
+-- plugin: nvim-treesitter
+local treesitter_augroup = vim.api.nvim_create_augroup("TreesitterStart", { clear = true })
+vim.api.nvim_create_autocmd({ "BufEnter", "FileType" }, {
+  group = treesitter_augroup,
+  callback = function(ev)
+    if vim.bo.buftype ~= "" then
+      return
+    end
 
-require("dpview").setup({
-  port = 8421,
-  sidebar_collapsed = true,
-  editor_file_sync = true,
-  preview_theme = "github",
-  cursor_seek = true,
-  latex_enabled = true,
-  typst_preview_theme = false,
-  markdown_frontmatter_visible = true,
-  markdown_frontmatter_expanded = true,
-  markdown_frontmatter_title = true,
-  auto_start = true,
-  auto_open_browser = false,
-  log_level = "info",
+    local successful = pcall(vim.treesitter.start, ev.buf)
+    if not successful then
+      return
+    end
+    vim.wo[0][0].fdm = "expr"
+    vim.wo[0][0].foldexpr = "v:lua.vim.treesitter.foldexpr()"
+    vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+  end,
 })
+
+vim.api.nvim_create_autocmd("VimEnter", {
+  group = treesitter_augroup,
+  callback = function()
+    require("nvim-treesitter").install(parsers)
+  end,
+})
+
+-- plugin: nvim-treesitter-textobjects
+require("nvim-treesitter-textobjects").setup({
+  select = {
+    enable = true,
+    lookahead = true,
+  },
+})
+vim.keymap.set({ "x", "o" }, "af", function()
+  require("nvim-treesitter-textobjects.select").select_textobject("@function.outer", "textobjects")
+end)
+vim.keymap.set({ "x", "o" }, "if", function()
+  require("nvim-treesitter-textobjects.select").select_textobject("@function.inner", "textobjects")
+end)
+
+-- plugin: agentic.nvim
+require("agentic").setup({ provider = "codex-acp" })
+
+vim.keymap.set({ "n", "v", "i" }, "<C-\\>", function()
+  require("agentic").toggle()
+end, { desc = "Toggle Agentic Chat" })
+vim.keymap.set({ "n", "v" }, "<C-'>", function()
+  require("agentic").add_selection_or_file_to_context()
+end, { desc = "Add file or selection to Agentic to Context" })
+vim.keymap.set({ "n", "v", "i" }, "<C-,>", function()
+  require("agentic").new_session()
+end, { desc = "New Agentic Session" })

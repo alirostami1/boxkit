@@ -1,28 +1,52 @@
 #!/usr/bin/env bash
 
+session_root="${XDG_STATE_HOME:-$HOME/.local/state}/nvim/sessions"
+
+workspace_session_file() {
+  local workspace="$1"
+  local workspace_path
+  local workspace_name
+  local workspace_hash
+
+  workspace_path="$(CDPATH= cd -- "$workspace" && pwd -P)"
+  workspace_name="$(basename "$workspace_path")"
+  workspace_hash="$(printf '%s' "$workspace_path" | sha256sum | cut -c1-12)"
+
+  printf '%s/%s-%s.vim' "$session_root" "$workspace_name" "$workspace_hash"
+}
+
+send_nvim_command() {
+  local target="$1"
+  local workspace="$2"
+  local session_file
+
+  session_file="$(workspace_session_file "$workspace")"
+  tmux send-keys -t "$target" "if [ -f $(printf '%q' "$session_file") ]; then nvim -S $(printf '%q' "$session_file"); else nvim .; fi" C-m
+}
+
 fdcommand=fd
 if ! type "fd" >/dev/null; then
-    if ! type "fdfind" >/dev/null; then
-        echo "fd command not found. Please install fd (fd-find on Debian/Ubuntu)." >&2
-        exit 1
-    fi
-    fdcommand=fdfind
+  if ! type "fdfind" >/dev/null; then
+    echo "fd command not found. Please install fd (fd-find on Debian/Ubuntu)." >&2
+    exit 1
+  fi
+  fdcommand=fdfind
 fi
 
 if [[ $# -eq 1 ]]; then
-    selected=$1
+  selected=$1
 else
-    selected=$(
-        {
-            $fdcommand . ~/work/* ~/projects -d 1 --type d
-            printf '%s\n' "$HOME/.local/share/chezmoi" "$HOME/scripts" \
-                "$HOME/.config/nvim" "$HOME/.config/zsh" "$HOME/.config/tmux"
-        } | fzf
-    )
+  selected=$(
+    {
+      $fdcommand . ~/work/* ~/projects -d 1 --type d
+      printf '%s\n' "$HOME/.local/share/chezmoi" "$HOME/scripts" \
+        "$HOME/.config/nvim" "$HOME/.config/zsh" "$HOME/.config/tmux"
+    } | fzf
+  )
 fi
 
 if [[ -z $selected ]]; then
-    exit 0
+  exit 0
 fi
 
 selected_name=$(basename "$selected" | tr . _)
@@ -30,33 +54,33 @@ tmux_running=$(pgrep tmux)
 
 # if not inside a tmux session, and if no session is started, start a new one
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
-    tmux new-session -d -s ${selected_name} -c $selected
-    tmux rename-window -t ${selected_name}:0 edit
-    tmux new-window -t ${selected_name} -n term -c $selected
-    sleep .01s
-    tmux send-keys -t ${selected_name}:edit 'nvim .' C-m
-    tmux attach -t ${selected_name}:edit
-    exit 0
+  tmux new-session -d -s ${selected_name} -c $selected
+  tmux rename-window -t ${selected_name}:0 edit
+  tmux new-window -t ${selected_name} -n term -c $selected
+  # sleep .01s
+  send_nvim_command "${selected_name}:edit" "$selected"
+  tmux attach -t ${selected_name}:edit
+  exit 0
 fi
 
 # if session does not exist, create it
 if ! tmux has-session -t=${selected_name} 2>/dev/null; then
-    tmux new-session -d -s ${selected_name} -c $selected
-    tmux rename-window -t ${selected_name}:0 edit
-    tmux new-window -t ${selected_name} -n term -c $selected
-    sleep .01s
-    tmux send-keys -t ${selected_name}:edit 'nvim .' C-m
-    # switch client
-    if [[ -z $TMUX ]]; then
-        tmux attach -t ${selected_name}:edit
-    else
-        tmux switch-client -t ${selected_name}:edit
-    fi
+  tmux new-session -d -s ${selected_name} -c $selected
+  tmux rename-window -t ${selected_name}:0 edit
+  tmux new-window -t ${selected_name} -n term -c $selected
+  sleep .01s
+  send_nvim_command "${selected_name}:edit" "$selected"
+  # switch client
+  if [[ -z $TMUX ]]; then
+    tmux attach -t ${selected_name}:edit
+  else
+    tmux switch-client -t ${selected_name}:edit
+  fi
 fi
 
 # if exists, just switch to it
 if [[ -z $TMUX ]]; then
-    tmux attach -t ${selected_name}
+  tmux attach -t ${selected_name}
 else
-    tmux switch-client -t ${selected_name}
+  tmux switch-client -t ${selected_name}
 fi

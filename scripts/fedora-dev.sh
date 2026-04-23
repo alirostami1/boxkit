@@ -4,10 +4,6 @@ set -e
 script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 . "${script_dir}/lib/log.sh"
 
-# GitHub CLI repo https://github.com/cli/cli/blob/trunk/docs/install_linux.md#rpm
-log_step "Adding GitHub CLI RPM repository"
-sudo dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
-
 # Update the container and install packages
 log_step "Installing Fedora packages from fedora-dev.packages"
 grep -v '^#' ./fedora-dev.packages | xargs sudo dnf install -y
@@ -18,7 +14,7 @@ log_step "Installing Node-based CLI tools"
 mkdir -p "${NPM_CONFIG_PREFIX}"
 npm config set prefix "${NPM_CONFIG_PREFIX}"
 npm install -g --no-fund --no-audit \
-  @openai/codex@0.77.0
+  @openai/codex@0.117.0
 
 # Standalone tools
 log_step "Installing standalone tools"
@@ -54,7 +50,7 @@ install_editor_plugins() {
   tmux kill-server || true
 
   if [ -f "${config_home}/nvim/mason-lock.json" ]; then
-    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+lua require('base_dev.mason_tools').restore_from_lockfile()" "+qa"
+    nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+lua require('aros.mason_tools').restore_from_lockfile()" "+qa"
   else
     nvim --headless "+lua vim.pack.update(nil, { force = true, target = 'lockfile' })" "+qa"
   fi

@@ -22,7 +22,6 @@ tmux
 ripgrep
 fzf
 tree-sitter-cli
-gh
 wl-clipboard
 unzip
 typescript

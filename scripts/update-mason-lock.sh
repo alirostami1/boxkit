@@ -14,9 +14,9 @@ Profiles:
   notes
   all
 
-Runs Neovim against a temporary copy of the selected profile config, installs
-all Mason tools configured by that profile, writes mason-lock.json, then copies
-it back to the matching dot_config profile in this repo.
+Runs Neovim against a temporary copy of the selected profile config, restores
+Mason tools from the current lockfile, writes mason-lock.json, then copies it
+back to the matching dot_config profile in this repo.
 USAGE
 }
 
@@ -45,8 +45,8 @@ command -v nvim >/dev/null 2>&1 || die "nvim is required but was not found in PA
 
 profile_module() {
   case "$1" in
-    base-dev) printf '%s' 'base_dev.mason_tools' ;;
-    notes) printf '%s' 'notes.mason_tools' ;;
+    base-dev) printf '%s' 'aros.mason_tools' ;;
+    notes) printf '%s' 'aros.mason_tools' ;;
     *) die "No Mason module configured for profile: $1" ;;
   esac
 }
@@ -72,14 +72,24 @@ update_profile_lock() {
   mkdir -p "${tmp_root}/config" "${tmp_root}/data" "${tmp_root}/state"
   cp -a "${profile_config_dir}" "${tmp_root}/config/nvim"
 
-  log_step "Installing Mason tools and updating ${profile_name} Mason lockfile in temporary XDG dirs"
-  XDG_CONFIG_HOME="${tmp_root}/config" \
-    XDG_DATA_HOME="${tmp_root}/data" \
-    XDG_STATE_HOME="${tmp_root}/state" \
-    nvim --headless \
-      "+lua require('${module_name}').install_all()" \
-      "+lua require('${module_name}').write_lockfile()" \
-      "+qa"
+  log_step "Restoring Mason tools and updating ${profile_name} Mason lockfile in temporary XDG dirs"
+  if [[ -f "${lockfile}" ]]; then
+    XDG_CONFIG_HOME="${tmp_root}/config" \
+      XDG_DATA_HOME="${tmp_root}/data" \
+      XDG_STATE_HOME="${tmp_root}/state" \
+      nvim --headless \
+        "+lua if not require('${module_name}').restore_from_lockfile() then error('restore_from_lockfile failed') end" \
+        "+lua require('${module_name}').write_lockfile()" \
+        "+qa"
+  else
+    log_info "No existing Mason lockfile for ${profile_name}; writing current installed package state"
+    XDG_CONFIG_HOME="${tmp_root}/config" \
+      XDG_DATA_HOME="${tmp_root}/data" \
+      XDG_STATE_HOME="${tmp_root}/state" \
+      nvim --headless \
+        "+lua require('${module_name}').write_lockfile()" \
+        "+qa"
+  fi
 
   if [[ ! -f "${tmp_root}/config/nvim/mason-lock.json" ]]; then
     die "Neovim did not generate mason-lock.json for profile: ${profile_name}"

@@ -158,6 +158,7 @@ vscode_loader.load({
 })
 
 require("mason").setup()
+require("aros.mason_tools").setup()
 
 require("blink.cmp").setup({
   keymap = { preset = "default" },
